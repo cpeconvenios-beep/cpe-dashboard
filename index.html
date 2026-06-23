@@ -252,8 +252,8 @@ body{font-family:'Segoe UI',Arial,sans-serif;background:#F0EDE0;color:#0A0A0A;fo
 // ============================================================
 // URLs CSV DAS PLANILHAS PUBLICADAS
 // ============================================================
-const URL_REPASSES = "https://api.allorigins.win/raw?url=" + encodeURIComponent("https://docs.google.com/spreadsheets/d/e/2PACX-1vR3-UmXX2u8TCbBuEg2xO-L0SO5ODNI0039rFaiSzz1vET8TB3-H7Rn52IVqgqpmakfXqj1cV2wDiI2/pub?gid=642238374&single=true&output=csv");
-const URL_CONTRATOS = "https://api.allorigins.win/raw?url=" + encodeURIComponent("https://docs.google.com/spreadsheets/d/e/2PACX-1vRtcJwBq9uDKSc0wt2eO4O4yMcGqtREy1SlUyKLDaeRNnomf3FBDTbIRocfmxlchKxJNgsiFEqis6B9/pub?output=csv");
+const URL_REPASSES = "https://corsproxy.io/?https://docs.google.com/spreadsheets/d/e/2PACX-1vR3-UmXX2u8TCbBuEg2xO-L0SO5ODNI0039rFaiSzz1vET8TB3-H7Rn52IVqgqpmakfXqj1cV2wDiI2/pub?gid=642238374&single=true&output=csv";
+const URL_CONTRATOS = "https://corsproxy.io/?https://docs.google.com/spreadsheets/d/e/2PACX-1vRtcJwBq9uDKSc0wt2eO4O4yMcGqtREy1SlUyKLDaeRNnomf3FBDTbIRocfmxlchKxJNgsiFEqis6B9/pub?output=csv";
 
 // Dados globais
 let DADOS = { fontes: {}, contratos: [] };
@@ -318,7 +318,9 @@ async function carregarDados() {
     renderizarContratos();
 
   } catch(e) {
-    document.getElementById('status-bar').textContent = '⚠️ Erro ao carregar dados. Verifique a conexão.';
+    document.getElementById('status-bar').textContent = '⚠️ Erro ao carregar dados: ' + e.message;
+    // Fallback: usar dados estáticos da última leitura
+    usarDadosFallback();
     document.getElementById('ultima-atualizacao').textContent = 'Erro ao atualizar';
     console.error(e);
   }
@@ -739,11 +741,36 @@ function showTab(tab) {
   document.getElementById('tab-'+tab).classList.add('active');
 }
 
+
+// ============================================================
+// DADOS FALLBACK (última leitura válida das planilhas)
+// ============================================================
+function usarDadosFallback() {
+  DADOS.fontes = {
+    DPRF: { convenio:13086500.92, planejado:9671313.92, recebido:6251313.00, saldo:580050.47,
+      elementos:{30:336024.26,37:0,39:244026.21,40:0} },
+    DER:  { convenio:9000000, planejado:12368400, recebido:4376778.72, saldo:310200.00,
+      elementos:{30:0,37:5000,39:305200,40:0} },
+    SEMAD:{ convenio:12500000, planejado:13000000, recebido:6500000, saldo:1364692.91,
+      elementos:{30:1106079.45,37:5000,39:253613.46,40:0} }
+  };
+  DADOS.contas = { c1250098:2254943.38, c1250057:498860.37, total:2753803.75 };
+  DADOS.contratos = [];
+  document.getElementById('ultima-atualizacao').textContent = 'Dados offline (última leitura)';
+  renderizarVisaoGeral();
+  renderizarRepasses();
+  renderizarContratos();
+}
+
 // ============================================================
 // INIT - carrega ao abrir a página
 // ============================================================
-window.addEventListener('load', () => {
-  carregarDados();
+window.addEventListener('load', async () => {
+  await carregarDados();
+  // Garantir que pelo menos os dados fallback estão visíveis
+  if (!document.getElementById('kpi-visao').textContent.includes('R$')) {
+    usarDadosFallback();
+  }
 });
 </script>
 </body>
