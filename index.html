@@ -252,8 +252,10 @@ body{font-family:'Segoe UI',Arial,sans-serif;background:#F0EDE0;color:#0A0A0A;fo
 // ============================================================
 // URLs CSV DAS PLANILHAS PUBLICADAS
 // ============================================================
-const URL_REPASSES = "https://corsproxy.io/?https://docs.google.com/spreadsheets/d/e/2PACX-1vR3-UmXX2u8TCbBuEg2xO-L0SO5ODNI0039rFaiSzz1vET8TB3-H7Rn52IVqgqpmakfXqj1cV2wDiI2/pub?gid=642238374&single=true&output=csv";
-const URL_CONTRATOS = "https://corsproxy.io/?https://docs.google.com/spreadsheets/d/e/2PACX-1vRtcJwBq9uDKSc0wt2eO4O4yMcGqtREy1SlUyKLDaeRNnomf3FBDTbIRocfmxlchKxJNgsiFEqis6B9/pub?output=csv";
+const CSV_REPASSES = "https://docs.google.com/spreadsheets/d/e/2PACX-1vR3-UmXX2u8TCbBuEg2xO-L0SO5ODNI0039rFaiSzz1vET8TB3-H7Rn52IVqgqpmakfXqj1cV2wDiI2/pub?output=csv";
+const CSV_CONTRATOS = "https://docs.google.com/spreadsheets/d/e/2PACX-1vRtcJwBq9uDKSc0wt2eO4O4yMcGqtREy1SlUyKLDaeRNnomf3FBDTbIRocfmxlchKxJNgsiFEqis6B9/pub?output=csv";
+const URL_REPASSES = "https://corsproxy.io/?url=" + encodeURIComponent(CSV_REPASSES);
+const URL_CONTRATOS = "https://corsproxy.io/?url=" + encodeURIComponent(CSV_CONTRATOS);
 
 // Dados globais
 let DADOS = { fontes: {}, contratos: [] };
@@ -297,32 +299,33 @@ function destroyChart(id) {
 // CARREGAR DADOS DAS PLANILHAS
 // ============================================================
 async function carregarDados() {
-  document.getElementById('status-bar').textContent = '⏳ Atualizando dados das planilhas...';
+  document.getElementById('status-bar').textContent = '⏳ Carregando dados das planilhas...';
   document.getElementById('ultima-atualizacao').textContent = 'Atualizando...';
 
   try {
-    const [respRepasses, respContratos] = await Promise.all([
-      fetch(URL_REPASSES, {cache: 'no-cache'}).then(r => r.text()),
-      fetch(URL_CONTRATOS, {cache: 'no-cache'}).then(r => r.text())
-    ]);
+    const ts = '&t=' + Date.now();
+    const urlRep = "https://corsproxy.io/?url=" + encodeURIComponent(CSV_REPASSES + ts);
+    const urlCon = "https://corsproxy.io/?url=" + encodeURIComponent(CSV_CONTRATOS + ts);
+    const respRepasses = await fetch(urlRep, {cache: 'no-store'}).then(r => r.text());
+    const respContratos = await fetch(urlCon, {cache: 'no-store'}).then(r => r.text());
+
+    if (!respRepasses || respRepasses.length < 20) throw new Error('Planilha de repasses vazia');
 
     processarRepasses(respRepasses);
     processarContratos(respContratos);
 
     const agora = new Date().toLocaleString('pt-BR');
     document.getElementById('ultima-atualizacao').textContent = 'Atualizado: ' + agora;
-    document.getElementById('status-bar').textContent = '✓ Dados carregados com sucesso';
+    document.getElementById('status-bar').textContent = '✓ Dados sincronizados com as planilhas';
 
     renderizarVisaoGeral();
     renderizarRepasses();
     renderizarContratos();
 
   } catch(e) {
-    document.getElementById('status-bar').textContent = '⚠️ Erro ao carregar dados: ' + e.message;
-    // Fallback: usar dados estáticos da última leitura
-    usarDadosFallback();
-    document.getElementById('ultima-atualizacao').textContent = 'Erro ao atualizar';
-    console.error(e);
+    console.error('Erro ao carregar:', e);
+    document.getElementById('status-bar').textContent = '❌ Não foi possível conectar às planilhas. Recarregue a página (F5).';
+    document.getElementById('ultima-atualizacao').textContent = 'Erro na sincronização';
   }
 }
 
@@ -332,174 +335,132 @@ async function carregarDados() {
 function processarRepasses(csv) {
   const rows = parseCSV(csv);
 
-  // Estrutura esperada da planilha RESUMO:
-  // Linha 10 (índice 9): saldos atuais DPRF(B10), DER(G10 ou H10), SEMAD(L10 ou M10)
-  // Linha 18 (índice 17): elementos DPRF(B-E), DER(H-K), SEMAD(M-P)
-  // Linha 65 (índice 64): saldo 1250098
-  // Linha 71 (índice 70): saldo 1250057
-  // Linha 77 (índice 76): saldo total CPE
+  let saldo_dprf=0, saldo_der=0, saldo_semad=0;
+  let elem_dprf={30:0,37:0,39:0,40:0};
+  let elem_der={30:0,37:0,39:0,40:0};
+  let elem_semad={30:0,37:0,39:0,40:0};
+  let saldo_1250098=0, saldo_1250057=0, saldo_total=0;
+  let conv_dprf=13086500.92, receb_dprf=6251313.00;
+  let conv_der=15000000, receb_der=4580875.47;
+  let conv_semad=12500000, receb_semad=6500000;
 
-  // Encontrar saldos por fonte (linha com "SALDO ATUAL")
-  let saldo_dprf = 0, saldo_der = 0, saldo_semad = 0;
-  let elem_dprf = {30:0,37:0,39:0,40:0};
-  let elem_der = {30:0,37:0,39:0,40:0};
-  let elem_semad = {30:0,37:0,39:0,40:0};
-  let saldo_1250098 = 0, saldo_1250057 = 0, saldo_total = 0;
+  // Localizar linhas-chave pela presença de texto
+  for (let i=0; i<rows.length; i++) {
+    const rowStr = rows[i].join('|').toUpperCase();
 
-  for (let i = 0; i < rows.length; i++) {
-    const row = rows[i];
-    const rowStr = row.join(',').toUpperCase();
-
-    // Linha de SALDO ATUAL - próxima linha tem os valores
-    if (rowStr.includes('SALDO ATUAL') && !rowStr.includes('SALDO POR')) {
-      const nextRow = rows[i+1] || [];
-      // DPRF é coluna B (índice 1), DER coluna G (índice 6), SEMAD coluna L (índice 11) ou M(12)
-      if (parseNum(nextRow[1]) > 0) saldo_dprf = parseNum(nextRow[1]);
-      // Encontrar DER e SEMAD nas colunas seguintes
-      for (let j = 5; j < nextRow.length; j++) {
-        if (parseNum(nextRow[j]) >= 0 && nextRow[j] && nextRow[j].includes(',')) {
-          if (j < 10 && saldo_der === 0) saldo_der = parseNum(nextRow[j]);
-          else if (j >= 10 && saldo_semad === 0) saldo_semad = parseNum(nextRow[j]);
-        }
+    // SALDO ATUAL por fonte: valores na PRÓXIMA linha
+    // Estrutura: DPRF col 4, DER col 9, SEMAD col 14
+    if (rowStr.includes('SALDO ATUAL') && !rowStr.includes('ELEMENTO')) {
+      const v = rows[i+1] || [];
+      if (saldo_dprf === 0) {
+        saldo_dprf = parseNum(v[4]);
+        saldo_der = parseNum(v[9]);
+        saldo_semad = parseNum(v[14]);
       }
     }
 
-    // Saldo por elemento - linha após "SALDO POR ELEMENTO"
-    if (rowStr.includes('SALDO POR ELEMENTO') || rowStr.includes('AQUISIÇÃO CONSUMO')) {
-      const nextRow = rows[i+1] || [];
-      if (nextRow.length > 10) {
-        // DPRF elementos: B,C,D,E (índices 1,2,3,4)
-        elem_dprf[30] = parseNum(nextRow[1]);
-        elem_dprf[37] = parseNum(nextRow[2]);
-        elem_dprf[39] = parseNum(nextRow[3]);
-        elem_dprf[40] = parseNum(nextRow[4]);
-        // DER elementos: H,I,J,K (índices 7,8,9,10)
-        elem_der[30] = parseNum(nextRow[7]);
-        elem_der[37] = parseNum(nextRow[8]);
-        elem_der[39] = parseNum(nextRow[9]);
-        // SEMAD elementos: M,N,O,P (índices 12,13,14,15)
-        elem_semad[30] = parseNum(nextRow[11]);
-        elem_semad[37] = parseNum(nextRow[12]);
-        elem_semad[39] = parseNum(nextRow[13]);
-      }
+    // SALDO POR ELEMENTO: rótulos na linha seguinte, valores 2 linhas abaixo
+    if (rowStr.includes('SALDO POR ELEMENTO')) {
+      const v = rows[i+2] || [];
+      // DPRF: col 4,5,6,7
+      elem_dprf[30]=parseNum(v[4]); elem_dprf[37]=parseNum(v[5]);
+      elem_dprf[39]=parseNum(v[6]); elem_dprf[40]=parseNum(v[7]);
+      // DER: col 9,10,11,12
+      elem_der[30]=parseNum(v[9]); elem_der[37]=parseNum(v[10]);
+      elem_der[39]=parseNum(v[11]); elem_der[40]=parseNum(v[12]);
+      // SEMAD: col 14,15,16,17
+      elem_semad[30]=parseNum(v[14]); elem_semad[37]=parseNum(v[15]);
+      elem_semad[39]=parseNum(v[16]); elem_semad[40]=parseNum(v[17]);
     }
 
-    // Saldo 1250098
+    // Contas: valor aparece algumas linhas abaixo do rótulo, na coluna 0
     if (rowStr.includes('1250098')) {
-      const nextRow = rows[i+1] || [];
-      for (let j = 0; j < nextRow.length; j++) {
-        const v = parseNum(nextRow[j]);
-        if (v > 0) { saldo_1250098 = v; break; }
-      }
+      for (let k=i+1; k<Math.min(i+4,rows.length); k++){const x=parseNum(rows[k][0]);if(x>1000){saldo_1250098=x;break;}}
     }
-
-    // Saldo 1250057
     if (rowStr.includes('1250057')) {
-      const nextRow = rows[i+1] || [];
-      for (let j = 0; j < nextRow.length; j++) {
-        const v = parseNum(nextRow[j]);
-        if (v > 0) { saldo_1250057 = v; break; }
-      }
+      for (let k=i+1; k<Math.min(i+4,rows.length); k++){const x=parseNum(rows[k][0]);if(x>1000){saldo_1250057=x;break;}}
     }
-
-    // Saldo Total CPE
     if (rowStr.includes('SALDO TOTAL CPE')) {
-      const nextRow = rows[i+1] || [];
-      for (let j = 0; j < nextRow.length; j++) {
-        const v = parseNum(nextRow[j]);
-        if (v > 0) { saldo_total = v; break; }
-      }
+      for (let k=i+1; k<Math.min(i+4,rows.length); k++){const x=parseNum(rows[k][0]);if(x>1000){saldo_total=x;break;}}
+    }
+    // Controle de descentralizações: previsão e recebido por fonte
+    if (rowStr.includes('PREVISÃO DE RECEBIMENTO')) {
+      const v = rows[i+1] || [];
+      // DPRF: previsão col 4, recebido col 5 | DER: prev col 9, receb col 10 | SEMAD: prev col 14, receb col 15
+      const p_dprf=parseNum(v[4]), r_dprf=parseNum(v[5]);
+      const p_der=parseNum(v[9]), r_der=parseNum(v[10]);
+      const p_semad=parseNum(v[14]), r_semad=parseNum(v[15]);
+      if (p_dprf>0){ conv_dprf=p_dprf; receb_dprf=r_dprf; }
+      if (p_der>0){ conv_der=p_der; receb_der=r_der; }
+      if (p_semad>0){ conv_semad=p_semad; receb_semad=r_semad; }
     }
   }
 
-  // Fallback: calcular total se não encontrado
+  // Fallback apenas se não encontrar
   if (saldo_total === 0) saldo_total = saldo_1250098 + saldo_1250057;
-  if (saldo_dprf === 0 && saldo_der === 0 && saldo_semad === 0) {
-    // Tentar leitura direta pelas linhas 9 e 17
-    if (rows[9]) {
-      const r = rows[9];
-      saldo_dprf = parseNum(r[1]) || parseNum(r[2]) || 0;
-      saldo_der = parseNum(r[6]) || parseNum(r[7]) || 0;
-      saldo_semad = parseNum(r[11]) || parseNum(r[12]) || 0;
-    }
-    if (rows[17]) {
-      const r = rows[17];
-      elem_dprf[30]=parseNum(r[1]); elem_dprf[37]=parseNum(r[2]);
-      elem_dprf[39]=parseNum(r[3]); elem_dprf[40]=parseNum(r[4]);
-      elem_der[30]=parseNum(r[7]); elem_der[37]=parseNum(r[8]);
-      elem_der[39]=parseNum(r[9]);
-      elem_semad[30]=parseNum(r[11]); elem_semad[37]=parseNum(r[12]);
-      elem_semad[39]=parseNum(r[13]);
-    }
-    if (rows[64]) { const r=rows[64]; for(let j=0;j<r.length;j++){const v=parseNum(r[j]);if(v>0){saldo_1250098=v;break;}} }
-    if (rows[70]) { const r=rows[70]; for(let j=0;j<r.length;j++){const v=parseNum(r[j]);if(v>0){saldo_1250057=v;break;}} }
-    if (rows[76]) { const r=rows[76]; for(let j=0;j<r.length;j++){const v=parseNum(r[j]);if(v>0){saldo_total=v;break;}} }
-  }
 
   DADOS.fontes = {
-    DPRF: { convenio:13086500.92, planejado:9671313.92, recebido:6251313.00, saldo:saldo_dprf, elementos:elem_dprf },
-    DER:  { convenio:9000000, planejado:12368400, recebido:4376778.72, saldo:saldo_der, elementos:elem_der },
-    SEMAD:{ convenio:12500000, planejado:13000000, recebido:6500000, saldo:saldo_semad, elementos:elem_semad }
+    DPRF: { convenio:conv_dprf, planejado:conv_dprf, recebido:receb_dprf, saldo:saldo_dprf, elementos:elem_dprf },
+    DER:  { convenio:conv_der, planejado:conv_der, recebido:receb_der, saldo:saldo_der, elementos:elem_der },
+    SEMAD:{ convenio:conv_semad, planejado:conv_semad, recebido:receb_semad, saldo:saldo_semad, elementos:elem_semad }
   };
   DADOS.contas = { c1250098:saldo_1250098, c1250057:saldo_1250057, total:saldo_total };
 }
 
-// ============================================================
-// PROCESSAR PLANILHA DE CONTRATOS
-// ============================================================
 function processarContratos(csv) {
   const rows = parseCSV(csv);
   const hoje = new Date();
+  hoje.setHours(0,0,0,0);
   const contratos = [];
 
-  // Pular cabeçalho (linha 0 e 1)
+  // Cabeçalho está na linha 1 (índice 1). Dados começam na linha 2.
   for (let i = 2; i < rows.length; i++) {
     const r = rows[i];
-    if (!r[3] || r[3].trim() === '') continue; // Empresa vazia
-
-    const elem = parseInt(r[0]) || 0;
+    if (r.length < 11) continue;
     const empresa = (r[3]||'').trim();
+    if (!empresa) continue;
+
+    // Parar nas linhas de resumo/total (não têm empresa mas têm TOTAL)
+    const linhaUpper = r.join('|').toUpperCase();
+    if (linhaUpper.includes('VALOR A EMPENHAR PARA CUMPRIMENTO') && !empresa) break;
+
+    const elem = (r[0]||'').trim();
     const objeto = (r[4]||'').trim();
     const fim_str = (r[6]||'').trim();
     const total = parseNum(r[10]);
     const emp = parseNum(r[12]);
-
-    // Parse da data fim vigência
-    let dias = 999;
-    let fim_date = null;
-    if (fim_str && fim_str.includes('/')) {
-      const partes = fim_str.split('/');
-      if (partes.length === 3) {
-        fim_date = new Date(partes[2], partes[1]-1, partes[0]);
-        dias = Math.round((fim_date - hoje) / (1000*60*60*24));
-      }
-    }
-
-    // Calcular a empenhar
     let aEmp = parseNum(r[15]);
     if (isNaN(aEmp) || aEmp < 0) aEmp = 0;
 
+    // Calcular dias até fim da vigência
+    let dias = 999;
+    let temData = false;
+    if (fim_str && fim_str.includes('/')) {
+      const p = fim_str.split('/');
+      if (p.length === 3) {
+        const fim = new Date(parseInt(p[2]), parseInt(p[1])-1, parseInt(p[0]));
+        fim.setHours(0,0,0,0);
+        dias = Math.round((fim - hoje) / (1000*60*60*24));
+        temData = true;
+      }
+    }
+
     // Status
     let status;
-    if (!fim_date) status = 'VIGENTE';
+    if (!temData) status = 'VIGENTE';
     else if (dias < 0) status = 'VENCIDO';
     else if (dias <= 30) status = '30D';
     else if (dias <= 60) status = '60D';
     else status = 'VIGENTE';
 
-    if (elem > 0 && empresa) {
-      contratos.push({ elem, empresa, objeto, fim_str, dias, status, total, emp, aEmp });
-    }
+    contratos.push({ elem, empresa, objeto, fim_str, dias: temData?dias:999, status, total, emp, aEmp });
   }
 
-  // Ordenar: vencidos primeiro, depois por dias
+  // Ordenar por dias (vencidos/críticos primeiro)
   contratos.sort((a,b) => a.dias - b.dias);
   DADOS.contratos = contratos;
 }
 
-// ============================================================
-// RENDERIZAR VISÃO GERAL
-// ============================================================
 function renderizarVisaoGeral() {
   const f = DADOS.fontes;
   const c = DADOS.contas || {};
@@ -742,36 +703,17 @@ function showTab(tab) {
 }
 
 
-// ============================================================
-// DADOS FALLBACK (última leitura válida das planilhas)
-// ============================================================
-function usarDadosFallback() {
-  DADOS.fontes = {
-    DPRF: { convenio:13086500.92, planejado:9671313.92, recebido:6251313.00, saldo:580050.47,
-      elementos:{30:336024.26,37:0,39:244026.21,40:0} },
-    DER:  { convenio:9000000, planejado:12368400, recebido:4376778.72, saldo:310200.00,
-      elementos:{30:0,37:5000,39:305200,40:0} },
-    SEMAD:{ convenio:12500000, planejado:13000000, recebido:6500000, saldo:1364692.91,
-      elementos:{30:1106079.45,37:5000,39:253613.46,40:0} }
-  };
-  DADOS.contas = { c1250098:2254943.38, c1250057:498860.37, total:2753803.75 };
-  DADOS.contratos = [];
-  document.getElementById('ultima-atualizacao').textContent = 'Dados offline (última leitura)';
-  renderizarVisaoGeral();
-  renderizarRepasses();
-  renderizarContratos();
-}
+
 
 // ============================================================
 // INIT - carrega ao abrir a página
 // ============================================================
-window.addEventListener('load', async () => {
-  await carregarDados();
-  // Garantir que pelo menos os dados fallback estão visíveis
-  if (!document.getElementById('kpi-visao').textContent.includes('R$')) {
-    usarDadosFallback();
-  }
+window.addEventListener('load', () => {
+  carregarDados();
 });
+
+// Recarregar a cada 5 minutos automaticamente
+setInterval(carregarDados, 5 * 60 * 1000);
 </script>
 </body>
 </html>
