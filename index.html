@@ -241,8 +241,33 @@ body{font-family:'Segoe UI',Arial,sans-serif;background:#F0EDE0;color:#0A0A0A;fo
 
 <!-- ABA PROGRAMAÇÃO -->
 <div class="tab-content" id="tab-content-programacao">
-  <div class="loading" style="padding:60px;">Esta aba exibe dados da planilha de programação.<br>Configure o link CSV da aba de programação para ativar.</div>
+  <div class="section-header"><span class="section-num">P1</span><h2>Programação Orçamentária por Fonte</h2></div>
+  <div style="background:#fff;border:1px solid #D4CDB8;border-radius:6px;padding:12px 16px;margin-bottom:16px;display:flex;align-items:center;gap:16px;">
+    <label style="font-size:11px;font-weight:700;color:#666;text-transform:uppercase;">Fonte</label>
+    <select id="filtro-fonte-prog" onchange="renderizarProgramacao()" style="border:1px solid #ccc;border-radius:4px;padding:6px 10px;font-size:13px;min-width:200px;">
+      <option value="DPRF">DPRF (73.10)</option>
+      <option value="DER">DER (83.20)</option>
+      <option value="SEMAD">SEMAD (52.20)</option>
+    </select>
+  </div>
+  <div class="kpi-row" id="kpi-programacao"></div>
+  <hr class="section-divider"/>
+  <div class="section-header"><span class="section-num">P2</span><h2>Distribuição por Elemento</h2></div>
+  <div class="full-chart-card">
+    <div class="chart-title">Valor Programado por Elemento de Despesa</div>
+    <div class="full-chart-wrap" style="height:280px;position:relative;"><canvas id="chartProgElem"></canvas></div>
+  </div>
+  <hr class="section-divider"/>
+  <div class="section-header"><span class="section-num">P3</span><h2>Itens da Programação</h2></div>
+  <div class="table-card">
+    <div class="table-header-row">
+      <span class="tit">Itens Programados</span>
+      <span class="tot" id="total-prog-label"></span>
+    </div>
+    <div style="overflow-x:auto;"><table class="data-table"><thead><tr><th>Elem.</th><th>Item</th><th>Descrição</th><th>Valor Programado</th></tr></thead><tbody id="tbody-programacao"></tbody></table></div>
+  </div>
 </div>
+
 
 <div style="text-align:center;padding:12px;font-size:11px;color:#aaa;border-top:1px solid #D4CDB8;margin-top:10px;">
   Execução Orçamentária CPE 2026 — Atualização automática via planilhas Google Sheets
@@ -271,6 +296,7 @@ const DADOS_FIXOS = {
     SEMAD: { convenio:12500000.00, planejado:12500000.00, recebido:6500000.00, saldo:1513581.31, elementos:{30:1106079.45,37:5000,39:402501.86,40:0} }
   },
   contas: { c1250098:2863668.66, c1250057:498860.37, total:3362529.03 },
+  programacao: {"DPRF": [{"elem": 15, "item": 1, "desc": "DIÁRIAS", "total": 530000.0}, {"elem": 30, "item": 16, "desc": "INFORMÁTICA", "total": 50000.0}, {"elem": 30, "item": 19, "desc": "MATERIAL PARA REFORMA E REPAROS", "total": 80000.0}, {"elem": 30, "item": 26, "desc": "Combustíveis POC", "total": 1200000.0}, {"elem": 37, "item": 1, "desc": "Conservação Limpeza", "total": 400000.0}, {"elem": 39, "item": 18, "desc": "Mnt de Veículos Rv via Contratos das RPM", "total": 120000.0}, {"elem": 39, "item": 19, "desc": "Locação de Máquinas e Eqp/Reprografia", "total": 40000.0}, {"elem": 39, "item": 21, "desc": "Manutenção ar condicionado – Cias Rv interior", "total": 25000.0}, {"elem": 39, "item": 21, "desc": "Manutenção de usina fotovoltáica", "total": 40000.0}, {"elem": 39, "item": 21, "desc": "Cercamento de frações", "total": 400000.0}, {"elem": 39, "item": 21, "desc": "Aferições IPEM", "total": 221875.0}, {"elem": 39, "item": 22, "desc": "Manutenção plataforma elevatória", "total": 7200.0}, {"elem": 39, "item": 43, "desc": "Manutenções Veículos Rv via Ticket Log", "total": 1127438.0}, {"elem": 39, "item": 52, "desc": "Contratação de Estagiários – CPE", "total": 500000.0}, {"elem": 39, "item": 61, "desc": "Serviço de Dedetização", "total": 20000.0}, {"elem": 39, "item": 87, "desc": "Combustíveis PRIME", "total": 271800.0}, {"elem": 40, "item": 2, "desc": "Serviço TI: Técnicos PDCase", "total": 1190000.0}, {"elem": 40, "item": 4, "desc": "Serviço TI: Contratação Internet BPMRv/CPE", "total": 23000.0}, {"elem": 47, "item": 7, "desc": "Taxa de Resíduos Sólidos Pref. Gov. Valadares", "total": 5000.0}, {"elem": 51, "item": 3, "desc": "Obra Reforma 1ª Cia Rv (Mateus Leme)", "total": 1600000.92}, {"elem": 52, "item": 17, "desc": "Aquisição de viaturas (15 unid.)", "total": 4080000.0}, {"elem": 52, "item": 6, "desc": "Rádio transceptor", "total": 120750.0}], "DER": [], "SEMAD": []},
   contratos: [{"elem": 39, "empresa": "Dedetizadora Itabirito Ltda", "objeto": "Serviço controle de pragas BPM MAmb", "fim_str": "17/06/2026", "dias": -6, "status": "VENCIDO", "total": 1500.0, "emp": 1500.0, "aEmp": 1500.0}, {"elem": 39, "empresa": "ELEVTECH ELEVADORES LTDA", "objeto": "Manutenção preventiva e corretiva da plataforma elevatória do prédio II", "fim_str": "19/06/2026", "dias": -4, "status": "VENCIDO", "total": 2434.86, "emp": 2400.0, "aEmp": 2034.86}, {"elem": 39, "empresa": "AMPLA SERVICES LTDA - ME", "objeto": "Locação de equipamentos e reprografia para Unidades do CPE", "fim_str": "05/08/2026", "dias": 43, "status": "60D", "total": 39828.0, "emp": 32040.74, "aEmp": 0}, {"elem": 40, "empresa": "BLTV Comunicações LTDA", "objeto": "Internet 4 Cia Rv", "fim_str": "05/08/2026", "dias": 43, "status": "60D", "total": 3300.0, "emp": 3300.0, "aEmp": 0}, {"elem": 37, "empresa": "MASTER CLEAN PRESTAÇÃO DE SERVIÇOS E CONSULTORIA LTDA", "objeto": "Limpeza e Conservação - 4º Pel/1ª Cia (Divinópolis), 3º Pel/4ª Cia (Barbacena) e 5ª Cia Rv (Poços de Caldas).", "fim_str": "11/08/2026", "dias": 49, "status": "60D", "total": 768817.05, "emp": 416552.9, "aEmp": 391202.0}, {"elem": 37, "empresa": "EMPRESA TATICA SOLUÇÕES EM SERVIÇOS LTDA", "objeto": "Limpeza e Conservação - Sede CPE, 1ª Cia Rv/ Sede BPM Mamb", "fim_str": "01/09/2026", "dias": 70, "status": "VIGENTE", "total": 182366.01, "emp": 74500.0, "aEmp": 107866.01}, {"elem": 39, "empresa": "AGIEL", "objeto": "Agenciamento de estágio", "fim_str": "01/12/2026", "dias": 161, "status": "VIGENTE", "total": 499194.0, "emp": 100000.0, "aEmp": 399194.0}, {"elem": 39, "empresa": "ELEC", "objeto": "Manutenção de etilômetros", "fim_str": "31/12/2026", "dias": 191, "status": "VIGENTE", "total": 1072006.0, "emp": 1072006.0, "aEmp": 0}, {"elem": 37, "empresa": "EMPRESA TATICA SOLUÇÕES EM SERVIÇOS LTDA", "objeto": "Limpeza e Conservação - Sede BPM Mamb", "fim_str": "01/01/2027", "dias": 192, "status": "VIGENTE", "total": 45591.48, "emp": 0, "aEmp": 45591.48}, {"elem": 39, "empresa": "JANDERSON REZENDE", "objeto": "Manutenção usina fotovoltáica - CPE", "fim_str": "01/01/2027", "dias": 192, "status": "VIGENTE", "total": 41249.95, "emp": 41249.95, "aEmp": 0}, {"elem": 40, "empresa": "TIM S/A", "objeto": "Serviço Móvel Pessoal (SMP) - Voz e Dados 100GB", "fim_str": "26/02/2027", "dias": 248, "status": "VIGENTE", "total": 18000.0, "emp": 18000.0, "aEmp": 0}, {"elem": 37, "empresa": "EMPRESA TATICA SOLUÇÕES EM SERVIÇOS LTDA", "objeto": "Trabalhador de manutenção de edificações - MAmb", "fim_str": "14/04/2027", "dias": 295, "status": "VIGENTE", "total": 45591.48, "emp": 0, "aEmp": 45591.48}, {"elem": 37, "empresa": "EMPRESA TATICA SOLUÇÕES EM SERVIÇOS LTDA", "objeto": "Trabalhador de manutenção de edificações - Rv", "fim_str": "14/04/2027", "dias": 295, "status": "VIGENTE", "total": 62499.99, "emp": 0, "aEmp": 62499.99}, {"elem": 40, "empresa": "INTERNET (EMPRESA CORPORATIVA)", "objeto": "Internet Sede", "fim_str": "26/04/2027", "dias": 307, "status": "VIGENTE", "total": 23000.0, "emp": 1916.0, "aEmp": 21084.0}, {"elem": 39, "empresa": "JMBM ENGENHARIA ELÉTRICAS & CLIMATIZAÇÃO LTDA", "objeto": "Manutenção de ar condicionado", "fim_str": "16/05/2027", "dias": 327, "status": "VIGENTE", "total": 32379.0, "emp": 3244.44, "aEmp": 29134.56}, {"elem": 39, "empresa": "LILIAN BERNARDES MOSINHO SANTOS", "objeto": "Manutenção de ar condicionado", "fim_str": "16/05/2027", "dias": 327, "status": "VIGENTE", "total": 6215.0, "emp": 4215.0, "aEmp": 2000.0}, {"elem": 39, "empresa": "SILK BRINDES COMUNICAÇÃO VISUAL LTDA", "objeto": "Manutenção de ar condicionado", "fim_str": "16/05/2027", "dias": 327, "status": "VIGENTE", "total": 31498.0, "emp": 15749.0, "aEmp": 31498.0}, {"elem": 39, "empresa": "ELEVADORES MILENIO LTDA", "objeto": "Manutenção de plataforma elevatória", "fim_str": "18/05/2027", "dias": 329, "status": "VIGENTE", "total": 2988.0, "emp": 2988.0, "aEmp": 0}, {"elem": 40, "empresa": "NEXT TELECOMUNICACOES DO BRASIL LTDA", "objeto": "Internet 4ª Cia Rv (UBA)", "fim_str": "30/05/2027", "dias": 341, "status": "VIGENTE", "total": 2000.0, "emp": 2000.0, "aEmp": 0}, {"elem": 37, "empresa": "TEMIS / 11ª RPM", "objeto": "Conservação e limpeza 2ª Cia Rv", "fim_str": "", "dias": 999, "status": "VIGENTE", "total": 82783.68, "emp": 49817.58, "aEmp": 32966.1}]
 };
 
@@ -319,9 +345,11 @@ async function carregarDados() {
   DADOS.fontes = JSON.parse(JSON.stringify(DADOS_FIXOS.fontes));
   DADOS.contas = JSON.parse(JSON.stringify(DADOS_FIXOS.contas));
   DADOS.contratos = JSON.parse(JSON.stringify(DADOS_FIXOS.contratos));
+  DADOS.programacao = JSON.parse(JSON.stringify(DADOS_FIXOS.programacao));
   renderizarVisaoGeral();
   renderizarRepasses();
   renderizarContratos();
+  renderizarProgramacao();
   document.getElementById('status-bar').textContent = '✓ Dados atualizados em 23/06/2026';
   document.getElementById('ultima-atualizacao').textContent = 'Atualizado: 23/06/2026';
 
@@ -729,6 +757,60 @@ function renderizarContratos() {
       <td style="font-size:11px;color:#9A8A5A">${obj}</td>
       <td>${c.fim_str||'-'}</td><td>${BRL(c.total)}</td><td>${emp_str}</td>
       <td style="color:#a32d2d;font-weight:600">${BRL(c.aEmp)}</td>`;
+    tbody.appendChild(tr);
+  });
+}
+
+
+// ============================================================
+// RENDERIZAR PROGRAMAÇÃO
+// ============================================================
+function renderizarProgramacao() {
+  const sel = document.getElementById('filtro-fonte-prog') ? document.getElementById('filtro-fonte-prog').value : 'DPRF';
+  const itens = (DADOS.programacao && DADOS.programacao[sel]) ? DADOS.programacao[sel] : [];
+
+  if (itens.length === 0) {
+    document.getElementById('kpi-programacao').innerHTML = '<div class="kpi-card"><div class="label">Sem dados</div><div class="value" style="font-size:14px;color:#888;">Programação desta fonte ainda não cadastrada</div></div>';
+    document.getElementById('tbody-programacao').innerHTML = '<tr><td colspan="4" style="text-align:center;padding:20px;color:#888;">Nenhum item programado para esta fonte.</td></tr>';
+    document.getElementById('total-prog-label').textContent = '';
+    destroyChart('chartProgElem');
+    return;
+  }
+
+  // Agrupar por elemento
+  const porElem = {};
+  let totalGeral = 0;
+  itens.forEach(it => {
+    porElem[it.elem] = (porElem[it.elem]||0) + it.total;
+    totalGeral += it.total;
+  });
+
+  const nElem = Object.keys(porElem).length;
+  document.getElementById('kpi-programacao').innerHTML = `
+    <div class="kpi-card"><div class="label">Total Programado</div><div class="value">${BRL(totalGeral)}</div><div class="sub">${sel} (${itens.length} itens)</div></div>
+    <div class="kpi-card"><div class="label">Elementos de Despesa</div><div class="value">${nElem}</div><div class="sub">Categorias programadas</div></div>
+    <div class="kpi-card"><div class="label">Maior Item</div><div class="value" style="font-size:15px;">${BRL(Math.max(...itens.map(i=>i.total)))}</div><div class="sub">${itens.reduce((a,b)=>a.total>b.total?a:b).desc.substring(0,30)}</div></div>
+  `;
+
+  // Gráfico por elemento
+  const elemsOrd = Object.keys(porElem).sort((a,b)=>porElem[b]-porElem[a]);
+  destroyChart('chartProgElem');
+  chartInstances['chartProgElem'] = new Chart(document.getElementById('chartProgElem'),{
+    type:'bar',
+    data:{
+      labels: elemsOrd.map(e=>'Elem '+e),
+      datasets:[{label:'Programado',data:elemsOrd.map(e=>porElem[e]),backgroundColor:'#9A8A5A',borderRadius:3}]
+    },
+    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>BRL(c.raw)}}},scales:{x:{ticks:{font:{size:11}}},y:{ticks:{callback:v=>BRL_K(v),font:{size:11}},grid:{color:'rgba(0,0,0,0.05)'}}}}
+  });
+
+  // Tabela
+  document.getElementById('total-prog-label').textContent = 'Total: ' + BRL(totalGeral);
+  const tbody = document.getElementById('tbody-programacao');
+  tbody.innerHTML = '';
+  itens.slice().sort((a,b)=> a.elem - b.elem || b.total - a.total).forEach(it => {
+    const tr = document.createElement('tr');
+    tr.innerHTML = `<td style="font-weight:600">${it.elem}</td><td>${it.item}</td><td style="font-size:11px;color:#9A8A5A">${it.desc}</td><td style="font-weight:600">${BRL(it.total)}</td>`;
     tbody.appendChild(tr);
   });
 }
