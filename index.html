@@ -66,6 +66,11 @@ body{font-family:'Segoe UI',Arial,sans-serif;background:#F0EDE0;color:#0A0A0A;fo
 .charts-row{display:grid;grid-template-columns:1.3fr 1fr;gap:14px;margin-bottom:18px;}
 .chart-card{background:#fff;border:1px solid #D4CDB8;border-radius:6px;padding:16px;}
 .chart-card .chart-title{font-size:11px;font-weight:700;color:#888;text-transform:uppercase;letter-spacing:.5px;margin-bottom:12px;}
+.chart-filtro{display:flex;gap:4px;margin-bottom:10px;flex-wrap:wrap;}
+.chart-filtro button{border:1px solid #D4CDB8;background:#fff;color:#777;font-size:10px;font-weight:700;padding:3px 10px;border-radius:12px;cursor:pointer;text-transform:uppercase;letter-spacing:.3px;transition:all .15s;}
+.chart-filtro button:hover{border-color:#9A8A5A;color:#9A8A5A;}
+.chart-filtro button.ativo{background:#9A8A5A;color:#fff;border-color:#9A8A5A;}
+.chart-title-row{display:flex;justify-content:space-between;align-items:flex-start;gap:8px;flex-wrap:wrap;}
 .chart-wrap{position:relative;width:100%;height:260px;}
 .chart-legend{display:flex;flex-wrap:wrap;gap:14px;margin-top:10px;font-size:11px;color:#555;}
 .chart-legend span{display:flex;align-items:center;gap:5px;}
@@ -158,7 +163,13 @@ body{font-family:'Segoe UI',Arial,sans-serif;background:#F0EDE0;color:#0A0A0A;fo
       </div>
     </div>
     <div class="chart-card">
-      <div class="chart-title">Recebido vs A Receber (Total)</div>
+      <div class="chart-title">Recebido vs A Receber</div>
+      <div class="chart-filtro" id="filtro-recebido">
+        <button class="ativo" onclick="filtrarRecebido('todas',this)">Todas</button>
+        <button onclick="filtrarRecebido('DPRF',this)">DPRF</button>
+        <button onclick="filtrarRecebido('DER',this)">DER</button>
+        <button onclick="filtrarRecebido('SEMAD',this)">SEMAD</button>
+      </div>
       <div class="chart-wrap"><canvas id="chartRecebidoTotal"></canvas></div>
       <div class="chart-legend">
         <span><span class="leg-sq" style="background:#0A0A0A"></span>Recebido</span>
@@ -276,7 +287,16 @@ body{font-family:'Segoe UI',Arial,sans-serif;background:#F0EDE0;color:#0A0A0A;fo
     <div class="full-chart-wrap" style="height:280px;position:relative;"><canvas id="chartProgElem"></canvas></div>
   </div>
   <hr class="section-divider"/>
-  <div class="section-header"><span class="section-num">P3</span><h2>Itens da Programação</h2></div>
+  <div class="section-header"><span class="section-num">P3</span><h2>Execução Orçamentária por Elemento</h2></div>
+  <div class="table-card">
+    <div class="table-header-row">
+      <span class="tit" id="execucao-titulo">Programado × Empenhado × Executado × Saldo</span>
+      <span class="tot" id="total-execucao-label"></span>
+    </div>
+    <div style="overflow-x:auto;"><table class="data-table"><thead><tr><th>Elemento</th><th>Programado</th><th>Empenhado</th><th>Executado (pago)</th><th>Saldo a Empenhar</th></tr></thead><tbody id="tbody-execucao"></tbody></table></div>
+  </div>
+  <hr class="section-divider"/>
+  <div class="section-header"><span class="section-num">P4</span><h2>Itens da Programação</h2></div>
   <div class="table-card">
     <div class="table-header-row">
       <span class="tit">Itens Programados</span>
@@ -457,7 +477,9 @@ function aplicarDadosAppsScript(dados) {
         if (d && !isNaN(d)) { d.setHours(0,0,0,0); dias = Math.round((d-hoje)/(864e5)); temData = true; }
       }
       let status = !temData ? 'VIGENTE' : dias<0 ? 'VENCIDO' : dias<=30 ? '30D' : dias<=60 ? '60D' : 'VIGENTE';
-      lista.push({ elem:ct.elem, empresa, objeto:ct.objeto||'', fim_str, dias:temData?dias:999, status, total, emp, aEmp: Math.max(0,total-emp) });
+      const saldoEmp = (typeof ct.saldoEmp==='number') ? ct.saldoEmp : parseNum(ct.saldoEmp);
+      const executado = Math.max(0, emp - saldoEmp); // pago = empenhado - saldo de empenho
+      lista.push({ elem:ct.elem, empresa, objeto:ct.objeto||'', fim_str, dias:temData?dias:999, status, total, emp, saldoEmp, executado, aEmp: Math.max(0,total-emp) });
     });
     if (lista.length > 0) { lista.sort((a,b)=>a.dias-b.dias); DADOS.contratos = lista; }
   }
@@ -622,8 +644,8 @@ function renderizarVisaoGeral() {
     <div class="kpi-card clicavel" onclick="toggleDetalhe(this,'kpi-visao','convenios')"><div class="label">Convênios (Total)</div><div class="value">${BRL(totalConvenios)}</div><div class="sub">DPRF + DER + SEMAD</div></div>
     <div class="kpi-card clicavel" onclick="toggleDetalhe(this,'kpi-visao','recebido')"><div class="label">Recebido até o momento</div><div class="value">${BRL(totalRecebido)}</div><div class="sub">${((totalRecebido/totalConvenios)*100).toFixed(1)}% dos convênios</div></div>
     <div class="kpi-card clicavel" onclick="toggleDetalhe(this,'kpi-visao','totalcpe')"><div class="label">Saldo Total CPE</div><div class="value" style="color:#9A8A5A;">${BRL(c.total||0)}</div><div class="sub">Contas 1250098 + 1250057</div></div>
-    <div class="kpi-card clicavel" onclick="toggleDetalhe(this,'kpi-visao','c98')"><div class="label">Saldo Conta 1250098</div><div class="value">${BRL(c.c1250098||0)}</div><div class="sub">Unidade 1250098</div></div>
-    <div class="kpi-card clicavel" onclick="toggleDetalhe(this,'kpi-visao','c57')"><div class="label">Saldo Conta 1250057</div><div class="value">${BRL(c.c1250057||0)}</div><div class="sub">Unidade 1250057</div></div>
+    <div class="kpi-card clicavel" onclick="toggleDetalhe(this,'kpi-visao','c98')"><div class="label">Saldo Conta 1250098</div><div class="value">${BRL(c.c1250098||0)}</div><div class="sub">Unidade Executora - 1250098</div></div>
+    <div class="kpi-card clicavel" onclick="toggleDetalhe(this,'kpi-visao','c57')"><div class="label">Saldo Conta 1250057</div><div class="value">${BRL(c.c1250057||0)}</div><div class="sub">Unidade Contábil - 1250057</div></div>
   `;
 
   // Detalhes dos cards da Visão Geral
@@ -713,14 +735,38 @@ function renderizarVisaoGeral() {
     options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>BRL(c.raw)}}},scales:{x:{ticks:{font:{size:11}}},y:{ticks:{callback:v=>BRL_M(v),font:{size:11}},grid:{color:'rgba(0,0,0,0.05)'}}}}
   });
 
-  const totalReceb = totalRecebido;
-  const totalAReceber = totalConvenios - totalRecebido;
+  // Gráfico Recebido vs A Receber (com filtro por fonte)
+  desenharChartRecebido(window._filtroRecebido || 'todas');
+}
+
+// Estado e renderização do gráfico Recebido vs A Receber por fonte
+function desenharChartRecebido(fonte) {
+  const f = DADOS.fontes || {};
+  window._filtroRecebido = fonte;
+  let recebido, aReceber, titulo;
+  if (fonte === 'todas') {
+    recebido = (f.DPRF?.recebido||0)+(f.DER?.recebido||0)+(f.SEMAD?.recebido||0);
+    const conv = (f.DPRF?.convenio||0)+(f.DER?.convenio||0)+(f.SEMAD?.convenio||0);
+    aReceber = conv - recebido;
+  } else {
+    const fd = f[fonte] || {};
+    recebido = fd.recebido || 0;
+    aReceber = (fd.convenio || 0) - recebido;
+  }
+  if (aReceber < 0) aReceber = 0;
   destroyChart('chartRecebidoTotal');
   chartInstances['chartRecebidoTotal'] = new Chart(document.getElementById('chartRecebidoTotal'),{
     type:'doughnut',
-    data:{labels:['Recebido','A Receber'],datasets:[{data:[totalReceb,totalAReceber],backgroundColor:['#0A0A0A','#BBA96A'],borderWidth:2,borderColor:'#F0EDE0'}]},
-    options:{responsive:true,maintainAspectRatio:false,cutout:'65%',plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>BRL(c.raw)}}}}
+    data:{labels:['Recebido','A Receber'],datasets:[{data:[recebido,aReceber],backgroundColor:['#0A0A0A','#BBA96A'],borderWidth:2,borderColor:'#F0EDE0'}]},
+    options:{responsive:true,maintainAspectRatio:false,cutout:'65%',plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>c.label+': '+BRL(c.raw)}}}}
   });
+}
+
+// Acionado pelos botões de filtro do gráfico
+function filtrarRecebido(fonte, btn) {
+  document.querySelectorAll('#filtro-recebido button').forEach(b=>b.classList.remove('ativo'));
+  if (btn) btn.classList.add('ativo');
+  desenharChartRecebido(fonte);
 }
 
 // ============================================================
@@ -963,6 +1009,67 @@ function renderizarProgramacao() {
     tr.innerHTML = `<td style="font-weight:600">${it.elem}</td><td>${it.item}</td><td style="font-size:11px;color:#9A8A5A">${it.desc}</td><td style="font-weight:600">${BRL(it.total)}</td>`;
     tbody.appendChild(tr);
   });
+
+  // ===== Execução Orçamentária por Elemento (cruza Programação x Contratos) =====
+  renderizarExecucaoElemento(sel, porElem);
+}
+
+// Cruza o programado (por elemento) com empenhado/executado (dos contratos)
+function renderizarExecucaoElemento(fonteSel, programadoPorElem) {
+  const tituloEl = document.getElementById('execucao-titulo');
+  if (tituloEl) tituloEl.textContent = 'Programado × Empenhado × Executado × Saldo — ' + fonteSel;
+
+  // Empenhado e executado vêm dos CONTRATOS, agrupados por elemento.
+  // Obs: os contratos não têm divisão por fonte de recurso, então os valores
+  // de empenho/execução são do total de contratos do CPE por elemento.
+  const contratos = DADOS.contratos || [];
+  const empPorElem = {}, exePorElem = {};
+  contratos.forEach(c => {
+    const e = parseInt(c.elem) || 0;
+    if (!e) return;
+    empPorElem[e] = (empPorElem[e]||0) + (c.emp||0);
+    exePorElem[e] = (exePorElem[e]||0) + (c.executado||0);
+  });
+
+  // União dos elementos (programados + com contrato)
+  const todosElems = new Set([
+    ...Object.keys(programadoPorElem).map(Number),
+    ...Object.keys(empPorElem).map(Number)
+  ]);
+  const elemsOrd = [...todosElems].filter(e=>e>0).sort((a,b)=>a-b);
+
+  let tProg=0, tEmp=0, tExe=0, tSaldo=0;
+  const tbody = document.getElementById('tbody-execucao');
+  tbody.innerHTML = '';
+  elemsOrd.forEach(e => {
+    const prog = programadoPorElem[e] || 0;
+    const emp = empPorElem[e] || 0;
+    const exe = exePorElem[e] || 0;
+    const saldo = prog - emp;
+    tProg+=prog; tEmp+=emp; tExe+=exe; tSaldo+=saldo;
+    const corSaldo = saldo > 0 ? 'color:#3b6d11' : (saldo < 0 ? 'color:#a32d2d' : 'color:#888');
+    const tr = document.createElement('tr');
+    tr.innerHTML = `<td style="font-weight:600">Elemento ${e}</td>
+      <td>${BRL(prog)}</td>
+      <td style="color:#9A8A5A;font-weight:600">${BRL(emp)}</td>
+      <td style="color:#185FA5;font-weight:600">${BRL(exe)}</td>
+      <td style="${corSaldo};font-weight:600">${BRL(saldo)}</td>`;
+    tbody.appendChild(tr);
+  });
+
+  // Linha de total
+  const trTot = document.createElement('tr');
+  trTot.style.borderTop = '2px solid #D4CDB8';
+  trTot.style.background = '#FBFAF4';
+  trTot.innerHTML = `<td style="font-weight:700">TOTAL</td>
+    <td style="font-weight:700">${BRL(tProg)}</td>
+    <td style="font-weight:700;color:#9A8A5A">${BRL(tEmp)}</td>
+    <td style="font-weight:700;color:#185FA5">${BRL(tExe)}</td>
+    <td style="font-weight:700;${tSaldo>=0?'color:#3b6d11':'color:#a32d2d'}">${BRL(tSaldo)}</td>`;
+  tbody.appendChild(trTot);
+
+  const lbl = document.getElementById('total-execucao-label');
+  if (lbl) lbl.textContent = 'Empenhado: ' + BRL(tEmp) + ' · Executado: ' + BRL(tExe);
 }
 
 // ============================================================
