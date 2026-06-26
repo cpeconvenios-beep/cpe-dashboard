@@ -346,6 +346,25 @@ const chartInstances = {};
 // UTILITÁRIOS
 // ============================================================
 const BRL = v => 'R$ ' + (parseFloat(v)||0).toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2});
+
+// Descrições oficiais dos elementos de despesa
+const ELEM_DESC = {
+  15: 'Diárias',
+  30: 'Material de Consumo',
+  37: 'Conservação e Limpeza',
+  39: 'Serviços',
+  40: 'Telecomunicações e TI',
+  47: 'Obrigações Tributárias',
+  51: 'Obras e Instalações',
+  52: 'Equipamentos e Material Permanente'
+};
+// Retorna "39 - Serviços". Aceita número ou string; se não tiver descrição, mostra só o código.
+function elemLabel(elem) {
+  const n = parseInt(elem);
+  if (!n) return String(elem||'—');
+  const desc = ELEM_DESC[n];
+  return desc ? (n + ' - ' + desc) : String(n);
+}
 const BRL_M = v => 'R$' + ((parseFloat(v)||0)/1e6).toFixed(2) + 'M';
 const BRL_K = v => 'R$' + ((parseFloat(v)||0)/1e3).toFixed(0) + 'K';
 
@@ -685,13 +704,22 @@ function renderizarVisaoGeral() {
     const saldo = fd.saldo || 0;
     const saldoClass = saldo > 0 ? 'saldo-positivo' : 'saldo-zero';
     const pct = fd.convenio > 0 ? ((fd.recebido/fd.convenio)*100).toFixed(1) : '0.0';
-    // DER tem retenção de 40% pelo Comando Geral
+    // Retenções do Comando Geral
     let retencaoHtml = '';
     if (k === 'DER') {
+      // DER: retenção de 40%
       const retencao = (fd.convenio||0) * 0.40;
       const liquidoCPE = (fd.convenio||0) - retencao;
       retencaoHtml = `<div class="detail-line" style="color:#a32d2d;">Retenção Cmd Geral (40%): <span style="color:#a32d2d;font-weight:600;">${BRL(retencao)}</span></div>
       <div class="detail-line">Líquido CPE (60%): <span style="color:#3b6d11;font-weight:700;">${BRL(liquidoCPE)}</span></div>`;
+    } else if (k === 'DPRF') {
+      // DPRF: retenção de valor fixo (R$ 1.034.437,00)
+      const retencao = 1034437.00;
+      const liquidoCPE = (fd.convenio||0) - retencao;
+      const pctRet = (fd.convenio||0) > 0 ? ((retencao/(fd.convenio||0))*100).toFixed(1) : '0.0';
+      const pctLiq = (fd.convenio||0) > 0 ? ((liquidoCPE/(fd.convenio||0))*100).toFixed(1) : '0.0';
+      retencaoHtml = `<div class="detail-line" style="color:#a32d2d;">Retenção Cmd Geral (${pctRet}%): <span style="color:#a32d2d;font-weight:600;">${BRL(retencao)}</span></div>
+      <div class="detail-line">Líquido CPE (${pctLiq}%): <span style="color:#3b6d11;font-weight:700;">${BRL(liquidoCPE)}</span></div>`;
     }
     htmlConv += `<div class="convenio-card">
       <div class="fonte-label">${labels[i]}</div>
@@ -795,10 +823,10 @@ function renderizarRepasses() {
   // Detalhes: saldo por elemento de cada fonte
   const detElem = (fd) => {
     const e = (fd && fd.elementos) || {};
-    return `${dlinha('Consumo (30)', BRL(e[30]||0))}
-      ${dlinha('Limpeza (37)', BRL(e[37]||0))}
-      ${dlinha('Serviços (39)', BRL(e[39]||0))}
-      ${dlinha('Telecom/TI (40)', BRL(e[40]||0))}
+    return `${dlinha(elemLabel(30), BRL(e[30]||0))}
+      ${dlinha(elemLabel(37), BRL(e[37]||0))}
+      ${dlinha(elemLabel(39), BRL(e[39]||0))}
+      ${dlinha(elemLabel(40), BRL(e[40]||0))}
       ${dlinha('Saldo Total', BRL(fd?.saldo||0), 'dourado')}`;
   };
   DETALHES['saldo-cards'] = {
@@ -860,7 +888,7 @@ function atualizarGraficoElemento() {
   destroyChart('chartRepElem');
   chartInstances['chartRepElem'] = new Chart(document.getElementById('chartRepElem'),{
     type:'bar',
-    data:{labels:['Consumo (30)','Limpeza (37)','Serviços (39)','Telecom/TI (40)'],datasets:[{label:'Saldo',data,backgroundColor:'#9A8A5A',borderRadius:3}]},
+    data:{labels:[elemLabel(30),elemLabel(37),elemLabel(39),elemLabel(40)],datasets:[{label:'Saldo',data,backgroundColor:'#9A8A5A',borderRadius:3}]},
     options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>BRL(c.raw)}}},scales:{x:{ticks:{font:{size:11}}},y:{ticks:{callback:v=>BRL_K(v),font:{size:11}},grid:{color:'rgba(0,0,0,0.05)'}}}}
   });
 }
@@ -895,9 +923,9 @@ function renderizarContratos() {
   });
   const elemsOrd = Object.keys(porElem).sort();
   DETALHES['kpi-contratos'] = {
-    valor: `<h4>Valor dos Contratos por Elemento</h4>${elemsOrd.map(e=>dlinha('Elemento '+e+' ('+porElem[e].n+')', BRL(porElem[e].total))).join('')}${dlinha('Total', BRL(totalVal),'dourado')}`,
-    empenhado: `<h4>Empenhado por Elemento</h4>${elemsOrd.map(e=>dlinha('Elemento '+e, BRL(porElem[e].emp))).join('')}${dlinha('Total Empenhado', BRL(totalEmp),'dourado')}`,
-    aempenhar: `<h4>A Empenhar por Elemento</h4>${elemsOrd.map(e=>dlinha('Elemento '+e, BRL(porElem[e].aEmp), porElem[e].aEmp>0?'vermelho':'')).join('')}${dlinha('Total a Empenhar', BRL(totalAEmp),'vermelho')}`
+    valor: `<h4>Valor dos Contratos por Elemento</h4>${elemsOrd.map(e=>dlinha(elemLabel(e)+' ('+porElem[e].n+')', BRL(porElem[e].total))).join('')}${dlinha('Total', BRL(totalVal),'dourado')}`,
+    empenhado: `<h4>Empenhado por Elemento</h4>${elemsOrd.map(e=>dlinha(elemLabel(e), BRL(porElem[e].emp))).join('')}${dlinha('Total Empenhado', BRL(totalEmp),'dourado')}`,
+    aempenhar: `<h4>A Empenhar por Elemento</h4>${elemsOrd.map(e=>dlinha(elemLabel(e), BRL(porElem[e].aEmp), porElem[e].aEmp>0?'vermelho':'')).join('')}${dlinha('Total a Empenhar', BRL(totalAEmp),'vermelho')}`
   };
 
   document.getElementById('alerta-row-contratos').innerHTML = `
@@ -948,7 +976,7 @@ function renderizarContratos() {
     const tr = document.createElement('tr');
     tr.innerHTML = `<td><span class="badge ${badgeCls}">${badge}</span></td>
       <td style="color:${corDias};font-weight:600">${dias_str}</td>
-      <td>${c.elem}</td><td style="font-size:11px">${c.empresa.substring(0,45)}</td>
+      <td title="${elemLabel(c.elem)}" style="cursor:help">${c.elem}</td><td style="font-size:11px">${c.empresa.substring(0,45)}</td>
       <td style="font-size:11px;color:#9A8A5A">${obj}</td>
       <td>${c.fim_str||'-'}</td><td>${BRL(c.total)}</td><td>${emp_str}</td>
       <td style="color:#a32d2d;font-weight:600">${BRL(c.aEmp)}</td>`;
@@ -992,9 +1020,9 @@ function renderizarProgramacao() {
   const elemsDet = Object.keys(porElem).sort((a,b)=>porElem[b]-porElem[a]);
   const top5 = itens.slice().sort((a,b)=>b.total-a.total).slice(0,5);
   DETALHES['kpi-programacao'] = {
-    total: `<h4>Programado por Elemento — ${sel}</h4>${elemsDet.map(e=>dlinha('Elemento '+e, BRL(porElem[e]))).join('')}${dlinha('Total Geral', BRL(totalGeral),'dourado')}`,
-    elementos: `<h4>Elementos de Despesa — ${sel}</h4>${elemsDet.map(e=>dlinha('Elemento '+e, BRL(porElem[e])+' ('+(totalGeral>0?(porElem[e]/totalGeral*100).toFixed(1):0)+'%)')).join('')}`,
-    maior: `<h4>Maiores Itens Programados — ${sel}</h4>${top5.map(it=>dlinha('Elem '+it.elem+' · '+it.desc.substring(0,35), BRL(it.total))).join('')}`
+    total: `<h4>Programado por Elemento — ${sel}</h4>${elemsDet.map(e=>dlinha(elemLabel(e), BRL(porElem[e]))).join('')}${dlinha('Total Geral', BRL(totalGeral),'dourado')}`,
+    elementos: `<h4>Elementos de Despesa — ${sel}</h4>${elemsDet.map(e=>dlinha(elemLabel(e), BRL(porElem[e])+' ('+(totalGeral>0?(porElem[e]/totalGeral*100).toFixed(1):0)+'%)')).join('')}`,
+    maior: `<h4>Maiores Itens Programados — ${sel}</h4>${top5.map(it=>dlinha(elemLabel(it.elem)+' · '+it.desc.substring(0,30), BRL(it.total))).join('')}`
   };
 
   // Gráfico por elemento
@@ -1003,7 +1031,7 @@ function renderizarProgramacao() {
   chartInstances['chartProgElem'] = new Chart(document.getElementById('chartProgElem'),{
     type:'bar',
     data:{
-      labels: elemsOrd.map(e=>'Elem '+e),
+      labels: elemsOrd.map(e=>elemLabel(e)),
       datasets:[{label:'Programado',data:elemsOrd.map(e=>porElem[e]),backgroundColor:'#9A8A5A',borderRadius:3}]
     },
     options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>BRL(c.raw)}}},scales:{x:{ticks:{font:{size:11}}},y:{ticks:{callback:v=>BRL_K(v),font:{size:11}},grid:{color:'rgba(0,0,0,0.05)'}}}}
@@ -1015,7 +1043,7 @@ function renderizarProgramacao() {
   tbody.innerHTML = '';
   itens.slice().sort((a,b)=> a.elem - b.elem || b.total - a.total).forEach(it => {
     const tr = document.createElement('tr');
-    tr.innerHTML = `<td style="font-weight:600">${it.elem}</td><td>${it.item}</td><td style="font-size:11px;color:#9A8A5A">${it.desc}</td><td style="font-weight:600">${BRL(it.total)}</td>`;
+    tr.innerHTML = `<td style="font-weight:600;cursor:help" title="${elemLabel(it.elem)}">${it.elem}</td><td>${it.item}</td><td style="font-size:11px;color:#9A8A5A">${it.desc}</td><td style="font-weight:600">${BRL(it.total)}</td>`;
     tbody.appendChild(tr);
   });
 
@@ -1058,7 +1086,7 @@ function renderizarExecucaoElemento(fonteSel, programadoPorElem) {
     tProg+=prog; tEmp+=emp; tExe+=exe; tSaldo+=saldo;
     const corSaldo = saldo > 0 ? 'color:#3b6d11' : (saldo < 0 ? 'color:#a32d2d' : 'color:#888');
     const tr = document.createElement('tr');
-    tr.innerHTML = `<td style="font-weight:600">Elemento ${e}</td>
+    tr.innerHTML = `<td style="font-weight:600">${elemLabel(e)}</td>
       <td>${BRL(prog)}</td>
       <td style="color:#9A8A5A;font-weight:600">${BRL(emp)}</td>
       <td style="color:#185FA5;font-weight:600">${BRL(exe)}</td>
