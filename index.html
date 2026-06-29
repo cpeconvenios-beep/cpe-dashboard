@@ -83,6 +83,8 @@ body{font-family:'Segoe UI',Arial,sans-serif;background:#F0EDE0;color:#0A0A0A;fo
 .alerta-card{background:#fff;border:1px solid #D4CDB8;border-radius:6px;padding:14px 16px;}
 .alerta-card .alerta-label{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px;display:flex;align-items:center;gap:5px;}
 .dot-red{width:9px;height:9px;border-radius:50%;background:#c0392b;display:inline-block;}
+.dot-bordo{width:9px;height:9px;border-radius:50%;background:#7a0c1f;display:inline-block;}
+.dot-black{width:9px;height:9px;border-radius:50%;background:#0A0A0A;display:inline-block;}
 .dot-yellow{width:9px;height:9px;border-radius:50%;background:#e6a817;display:inline-block;}
 .dot-green{width:9px;height:9px;border-radius:50%;background:#3b6d11;display:inline-block;}
 .dot-orange{width:9px;height:9px;border-radius:50%;background:#E87722;display:inline-block;}
@@ -766,28 +768,47 @@ function renderizarVisaoGeral() {
   });
   document.getElementById('convenio-row').innerHTML = htmlConv;
 
-  // Gráfico barras
+  // Resumo de contratos (alinhado com a aba Contratos)
   const vencidos = contratos.filter(c=>c.status==='VENCIDO').length;
   const ate30 = contratos.filter(c=>c.status==='30D').length;
   const ate60 = contratos.filter(c=>c.status==='60D').length;
   const ate90 = contratos.filter(c=>c.status==='90D').length;
   const vigentes = contratos.filter(c=>c.status==='VIGENTE').length;
+  // Valores
+  const valVencidos = contratos.filter(c=>c.status==='VENCIDO').reduce((s,c)=>s+(c.aEmp||0),0);
+  const totalAEmpV = contratos.reduce((s,c)=>s+(c.aEmp||0),0);
+  const totalValV = contratos.reduce((s,c)=>s+(c.total||0),0);
 
   document.getElementById('alerta-row-visao').innerHTML = `
     <div class="alerta-card">
-      <div class="alerta-label"><span class="dot-red"></span> VENCIDOS</div>
-      <div class="alerta-num red">${vencidos}</div>
-      <div class="alerta-sub">${vencidos} vencido${vencidos!==1?'s':''}</div>
+      <div class="alerta-label"><span class="dot-bordo"></span> VENCIDOS</div>
+      <div class="alerta-num" style="color:#7a0c1f">${vencidos}</div>
+      <div class="alerta-sub">A empenhar: ${BRL(valVencidos)}</div>
     </div>
     <div class="alerta-card">
-      <div class="alerta-label"><span class="dot-orange"></span> VENCENDO EM ATÉ 90 DIAS</div>
-      <div class="alerta-num yellow">${ate30+ate60+ate90}</div>
-      <div class="alerta-sub">${ate30} ≤30d · ${ate60} ≤60d · ${ate90} ≤90d</div>
+      <div class="alerta-label"><span class="dot-black"></span> ≤30 DIAS</div>
+      <div class="alerta-num" style="color:#0A0A0A">${ate30}</div>
+      <div class="alerta-sub">Crítico</div>
     </div>
     <div class="alerta-card">
-      <div class="alerta-label"><span class="dot-green"></span> VIGENTES (>90 DIAS)</div>
+      <div class="alerta-label"><span class="dot-red"></span> ≤60 DIAS</div>
+      <div class="alerta-num" style="color:#c0392b">${ate60}</div>
+      <div class="alerta-sub">Atenção</div>
+    </div>
+    <div class="alerta-card">
+      <div class="alerta-label"><span class="dot-orange"></span> ≤90 DIAS</div>
+      <div class="alerta-num" style="color:#E87722">${ate90}</div>
+      <div class="alerta-sub">Alerta</div>
+    </div>
+    <div class="alerta-card">
+      <div class="alerta-label"><span class="dot-green"></span> VIGENTES (>90d)</div>
       <div class="alerta-num green">${vigentes}</div>
       <div class="alerta-sub">Em dia</div>
+    </div>
+    <div class="alerta-card">
+      <div class="alerta-label"><span class="dot-green" style="background:#9A8A5A"></span> TOTAL CONTRATADO</div>
+      <div class="alerta-num" style="color:#9A8A5A;font-size:22px">${BRL(totalValV)}</div>
+      <div class="alerta-sub">${contratos.length} contratos · A empenhar: ${BRL(totalAEmpV)}</div>
     </div>
   `;
 
