@@ -37,7 +37,11 @@ body{font-family:'Segoe UI',Arial,sans-serif;background:#F0EDE0;color:#0A0A0A;fo
 .kpi-card.clicavel:hover{box-shadow:0 4px 12px rgba(154,138,90,.25);border-color:#9A8A5A;transform:translateY(-1px);}
 .kpi-card.clicavel::after{content:"▾";position:absolute;top:10px;right:12px;color:#bbae85;font-size:12px;transition:transform .2s;}
 .kpi-card.clicavel.aberto::after{transform:rotate(180deg);}
-.detalhe-painel{grid-column:1/-1;background:#FBFAF4;border:1px solid #D4CDB8;border-radius:6px;padding:16px 18px;margin-top:-4px;animation:slideDown .2s ease;}
+.detalhe-painel{grid-column:1/-1;background:#FBFAF4;border:2px solid #9A8A5A;border-radius:6px;padding:14px 18px 16px;margin-top:6px;animation:slideDown .2s ease;}
+.detalhe-cabecalho{font-size:12px;color:#777;margin-bottom:12px;padding-bottom:8px;border-bottom:1.5px solid #E0DAC4;}
+.detalhe-cabecalho .detalhe-origem{text-transform:uppercase;letter-spacing:.4px;font-size:10px;font-weight:700;}
+.detalhe-cabecalho strong{color:#0A0A0A;font-size:14px;}
+.kpi-card.clicavel.aberto{border-color:#9A8A5A;border-width:2px;box-shadow:0 4px 14px rgba(154,138,90,.35);background:#FDFCF6;}
 .detalhe-painel h4{font-size:13px;font-weight:700;color:#0A0A0A;margin-bottom:10px;text-transform:uppercase;letter-spacing:.4px;}
 .detalhe-painel .dlinha{display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid #ECE8D8;font-size:13px;}
 .detalhe-painel .dlinha:last-child{border-bottom:none;}
@@ -233,10 +237,36 @@ body{font-family:'Segoe UI',Arial,sans-serif;background:#F0EDE0;color:#0A0A0A;fo
   <div class="section-header"><span class="section-num">C1</span><h2>Panorama dos Contratos</h2></div>
   <div class="kpi-row" id="kpi-contratos"><div class="loading">Carregando...</div></div>
   <hr class="section-divider"/>
-  <div class="section-header"><span class="section-num">C2</span><h2>Alerta de Vigência</h2></div>
+  <div class="section-header"><span class="section-num">C2</span><h2>Cobertura Orçamentária dos Contratos</h2></div>
+  <div style="background:#fff;border:1px solid #D4CDB8;border-radius:6px;padding:12px 16px;margin-bottom:14px;">
+    <div style="font-size:11px;color:#777;margin-bottom:10px;line-height:1.5;">
+      Crédito Garantido = <strong>Saldo Atual em conta</strong> + <strong>Repasses a Receber</strong> (A Receber do convênio). Compara com o valor que ainda falta empenhar para cumprir os contratos.
+    </div>
+    <div style="display:flex;gap:20px;flex-wrap:wrap;align-items:flex-start;">
+      <div>
+        <div style="font-size:10px;font-weight:700;color:#666;text-transform:uppercase;margin-bottom:5px;">Fonte</div>
+        <div class="chart-filtro" id="filtro-cob-fonte">
+          <button class="ativo" onclick="setCobFonte('todas',this)">Todas</button>
+          <button onclick="setCobFonte('DPRF',this)">DPRF</button>
+          <button onclick="setCobFonte('DER',this)">DER</button>
+          <button onclick="setCobFonte('SEMAD',this)">SEMAD</button>
+        </div>
+      </div>
+      <div>
+        <div style="font-size:10px;font-weight:700;color:#666;text-transform:uppercase;margin-bottom:5px;">Elemento</div>
+        <div class="chart-filtro" id="filtro-cob-elem">
+          <button class="ativo" onclick="setCobElem('todos',this)">Todos</button>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="kpi-row" id="kpi-cobertura"></div>
+  <div id="cobertura-barra"></div>
+  <hr class="section-divider"/>
+  <div class="section-header"><span class="section-num">C3</span><h2>Alerta de Vigência</h2></div>
   <div class="alerta-row" id="alerta-row-contratos"><div class="loading">Carregando...</div></div>
   <hr class="section-divider"/>
-  <div class="section-header"><span class="section-num">C3</span><h2>Distribuição</h2></div>
+  <div class="section-header"><span class="section-num">C4</span><h2>Distribuição</h2></div>
   <div class="charts-row">
     <div class="chart-card">
       <div class="chart-title">Contratos por Status de Vigência</div>
@@ -258,7 +288,7 @@ body{font-family:'Segoe UI',Arial,sans-serif;background:#F0EDE0;color:#0A0A0A;fo
     </div>
   </div>
   <hr class="section-divider"/>
-  <div class="section-header"><span class="section-num">C4</span><h2>Contratos por Vigência (mais críticos primeiro)</h2></div>
+  <div class="section-header"><span class="section-num">C5</span><h2>Contratos por Vigência (mais críticos primeiro)</h2></div>
   <div class="table-card">
     <div class="table-header-row">
       <span class="tit">Contratos com Etiquetas de Vigência</span>
@@ -982,12 +1012,98 @@ function renderizarContratos() {
       <td style="color:#a32d2d;font-weight:600">${BRL(c.aEmp)}</td>`;
     tbody.appendChild(tr);
   });
+
+  // Renderizar a cobertura orçamentária e popular o filtro de elementos
+  popularFiltroElementosCobertura();
+  renderizarCobertura();
 }
 
+// Estado dos filtros de cobertura
+let _cobFonte = 'todas';
+let _cobElem = 'todos';
 
-// ============================================================
-// RENDERIZAR PROGRAMAÇÃO
-// ============================================================
+function setCobFonte(fonte, btn) {
+  _cobFonte = fonte;
+  document.querySelectorAll('#filtro-cob-fonte button').forEach(b=>b.classList.remove('ativo'));
+  if (btn) btn.classList.add('ativo');
+  renderizarCobertura();
+}
+function setCobElem(elem, btn) {
+  _cobElem = elem;
+  document.querySelectorAll('#filtro-cob-elem button').forEach(b=>b.classList.remove('ativo'));
+  if (btn) btn.classList.add('ativo');
+  renderizarCobertura();
+}
+
+// Cria os botões de elemento dinamicamente (com base nos contratos existentes)
+function popularFiltroElementosCobertura() {
+  const cont = document.getElementById('filtro-cob-elem');
+  if (!cont) return;
+  const elems = [...new Set((DADOS.contratos||[]).map(c=>parseInt(c.elem)).filter(e=>e>0))].sort((a,b)=>a-b);
+  let html = '<button class="' + (_cobElem==='todos'?'ativo':'') + '" onclick="setCobElem(\'todos\',this)">Todos</button>';
+  elems.forEach(e=>{
+    html += '<button class="' + (_cobElem==String(e)?'ativo':'') + '" onclick="setCobElem(\'' + e + '\',this)">' + e + '</button>';
+  });
+  cont.innerHTML = html;
+}
+
+// Calcula e exibe a cobertura orçamentária conforme filtros
+function renderizarCobertura() {
+  const f = DADOS.fontes || {};
+  const contratos = DADOS.contratos || [];
+
+  // 1) Crédito garantido = saldo atual + a receber (por fonte ou todas)
+  let saldoAtual = 0, aReceber = 0;
+  const fontesUsar = (_cobFonte === 'todas') ? ['DPRF','DER','SEMAD'] : [_cobFonte];
+  fontesUsar.forEach(k => {
+    const fd = f[k] || {};
+    saldoAtual += fd.saldo || 0;
+    aReceber += Math.max(0, (fd.convenio||0) - (fd.recebido||0));
+  });
+  const creditoGarantido = saldoAtual + aReceber;
+
+  // 2) A empenhar (filtrado por elemento se selecionado)
+  // Obs: contratos não têm fonte de recurso vinculada, então o filtro por fonte
+  // afeta o crédito; o filtro por elemento afeta o "a empenhar".
+  let aEmpenhar = 0;
+  contratos.forEach(c => {
+    if (_cobElem !== 'todos' && String(parseInt(c.elem)) !== String(_cobElem)) return;
+    aEmpenhar += c.aEmp || 0;
+  });
+
+  // 3) Cobertura
+  const cobre = creditoGarantido >= aEmpenhar;
+  const pctCobertura = aEmpenhar > 0 ? Math.min(100, (creditoGarantido/aEmpenhar)*100) : 100;
+  const folga = creditoGarantido - aEmpenhar;
+
+  // Cards
+  document.getElementById('kpi-cobertura').innerHTML = `
+    <div class="kpi-card"><div class="label">Saldo Atual em Conta</div><div class="value">${BRL(saldoAtual)}</div><div class="sub">${_cobFonte==='todas'?'Todas as fontes':_cobFonte}</div></div>
+    <div class="kpi-card"><div class="label">Repasses a Receber</div><div class="value">${BRL(aReceber)}</div><div class="sub gold">Previsto até dez/2026</div></div>
+    <div class="kpi-card"><div class="label">Crédito Garantido</div><div class="value" style="color:#3b6d11;">${BRL(creditoGarantido)}</div><div class="sub">Saldo + A Receber</div></div>
+    <div class="kpi-card"><div class="label">A Empenhar ${_cobElem!=='todos'?'('+elemLabel(_cobElem)+')':''}</div><div class="value" style="color:#a32d2d;">${BRL(aEmpenhar)}</div><div class="sub">Necessário p/ contratos</div></div>
+  `;
+
+  // Barra de cobertura
+  const corBarra = cobre ? '#3b6d11' : '#c0392b';
+  const corFundo = cobre ? '#e8f0df' : '#f7e3e1';
+  const icone = cobre ? '✓' : '⚠️';
+  const msg = cobre
+    ? `Crédito garantido <strong>cobre integralmente</strong> o valor a empenhar. Folga de ${BRL(folga)}.`
+    : `<strong>Atenção:</strong> o crédito garantido <strong>não cobre</strong> todo o valor a empenhar. Faltam ${BRL(Math.abs(folga))}.`;
+  document.getElementById('cobertura-barra').innerHTML = `
+    <div style="background:${corFundo};border:1px solid ${corBarra};border-radius:6px;padding:14px 18px;margin-top:4px;">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;flex-wrap:wrap;gap:6px;">
+        <span style="font-size:13px;font-weight:700;color:${corBarra};">${icone} Cobertura: ${pctCobertura.toFixed(0)}%</span>
+        <span style="font-size:12px;color:#555;">Crédito ${BRL(creditoGarantido)} × A Empenhar ${BRL(aEmpenhar)}</span>
+      </div>
+      <div style="background:#fff;border-radius:10px;height:18px;overflow:hidden;border:1px solid #ddd;">
+        <div style="height:100%;width:${pctCobertura.toFixed(0)}%;background:${corBarra};transition:width .4s;"></div>
+      </div>
+      <div style="font-size:12px;color:#444;margin-top:10px;">${msg}</div>
+    </div>
+  `;
+}
 function renderizarProgramacao() {
   const sel = document.getElementById('filtro-fonte-prog') ? document.getElementById('filtro-fonte-prog').value : 'DPRF';
   const itens = (DADOS.programacao && DADOS.programacao[sel]) ? DADOS.programacao[sel] : [];
@@ -1140,24 +1256,31 @@ function toggleDetalhe(cardEl, rowId, chave) {
   let painel = document.getElementById(painelId);
   const jaAberto = painel && painel.dataset.chave === chave;
 
-  // Remover painel existente e marcações
+  // Remover painel existente e tirar destaque de todos os cards
   if (painel) painel.remove();
   row.querySelectorAll('.kpi-card.aberto').forEach(c=>c.classList.remove('aberto'));
 
   // Se clicou no mesmo card que já estava aberto, apenas fecha
   if (jaAberto) return;
 
+  // Título do card clicado (para o cabeçalho do painel)
+  const labelEl = cardEl.querySelector('.label');
+  const tituloCard = labelEl ? labelEl.textContent : '';
+
   const conteudo = (DETALHES[rowId] && DETALHES[rowId][chave]) ? DETALHES[rowId][chave] : '<div class="dlinha"><span class="dlabel">Sem detalhes adicionais.</span></div>';
   painel = document.createElement('div');
   painel.className = 'detalhe-painel';
   painel.id = painelId;
   painel.dataset.chave = chave;
-  painel.innerHTML = conteudo;
+  painel.innerHTML = `<div class="detalhe-cabecalho"><span class="detalhe-origem">Detalhamento de:</span> <strong>${tituloCard}</strong></div>${conteudo}`;
 
-  // Inserir logo após o card clicado
-  if (cardEl.nextSibling) row.insertBefore(painel, cardEl.nextSibling);
-  else row.appendChild(painel);
+  // SEMPRE inserir após TODA a linha de cards (no final do grid), nunca no meio.
+  // Assim os cards permanecem fixos na posição e o detalhe abre logo abaixo.
+  row.appendChild(painel);
   cardEl.classList.add('aberto');
+
+  // Rolar suavemente para o painel ficar visível
+  setTimeout(()=>{ painel.scrollIntoView({behavior:'smooth', block:'nearest'}); }, 50);
 }
 
 
