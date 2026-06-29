@@ -850,7 +850,7 @@ function renderizarRepasses() {
   document.getElementById('saldo-cards').innerHTML = `
     <div class="kpi-card clicavel" onclick="toggleDetalhe(this,'saldo-cards','total')"><div class="label">Saldo Total Disponível</div><div class="value">${BRL(c.total||0)}</div><div class="sub">1250098 + 1250057</div></div>
     <div class="kpi-card clicavel" onclick="toggleDetalhe(this,'saldo-cards','DPRF')"><div class="label" style="color:#0A0A0A;">DPRF (73.10)</div><div class="value">${BRL(f.DPRF?.saldo||0)}</div><div class="sub">Recebido: ${BRL(f.DPRF?.recebido||0)}</div></div>
-    <div class="kpi-card clicavel" onclick="toggleDetalhe(this,'saldo-cards','DER')"><div class="label" style="color:#3b6d11;">DER (83.20)</div><div class="value">${BRL(f.DER?.saldo||0)}</div><div class="sub">Recebido: ${BRL(f.DER?.recebido||0)}</div></div>
+    <div class="kpi-card clicavel" onclick="toggleDetalhe(this,'saldo-cards','DER')"><div class="label" style="color:#888;">DER (83.20)</div><div class="value">${BRL(f.DER?.saldo||0)}</div><div class="sub">Recebido: ${BRL(f.DER?.recebido||0)}</div></div>
     <div class="kpi-card clicavel" onclick="toggleDetalhe(this,'saldo-cards','SEMAD')"><div class="label" style="color:#9A8A5A;">SEMAD (52.20)</div><div class="value">${BRL(f.SEMAD?.saldo||0)}</div><div class="sub">Recebido: ${BRL(f.SEMAD?.recebido||0)}</div></div>
   `;
 
