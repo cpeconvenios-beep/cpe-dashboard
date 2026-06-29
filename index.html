@@ -105,7 +105,7 @@ body{font-family:'Segoe UI',Arial,sans-serif;background:#F0EDE0;color:#0A0A0A;fo
 .data-table tr:last-child td{border-bottom:none;}
 .data-table tr:hover td{background:#F5F2E8;}
 .badge{display:inline-block;padding:2px 8px;border-radius:3px;font-size:10px;font-weight:700;text-transform:uppercase;}
-.badge-vencido{background:#c0392b;color:#fff;}
+.badge-vencido{background:#7a0c1f;color:#fff;}
 .badge-30d{background:#0A0A0A;color:#fff;}
 .badge-60d{background:#c0392b;color:#fff;}
 .badge-90d{background:#E87722;color:#fff;}
@@ -273,7 +273,7 @@ body{font-family:'Segoe UI',Arial,sans-serif;background:#F0EDE0;color:#0A0A0A;fo
       <div class="chart-title">Contratos por Status de Vigência</div>
       <div class="chart-wrap"><canvas id="chartStatusVigencia"></canvas></div>
       <div class="chart-legend">
-        <span><span class="leg-sq" style="background:#c0392b"></span>Vencidos</span>
+        <span><span class="leg-sq" style="background:#7a0c1f"></span>Vencidos</span>
         <span><span class="leg-sq" style="background:#0A0A0A"></span>≤30 dias</span>
         <span><span class="leg-sq" style="background:#c0392b"></span>≤60 dias</span>
         <span><span class="leg-sq" style="background:#E87722"></span>≤90 dias</span>
@@ -984,7 +984,7 @@ function renderizarContratos() {
   destroyChart('chartStatusVigencia');
   chartInstances['chartStatusVigencia'] = new Chart(document.getElementById('chartStatusVigencia'),{
     type:'doughnut',
-    data:{labels:['Vencidos','≤30 dias','≤60 dias','≤90 dias','Vigentes >90d'],datasets:[{data:[vencidos,ate30,ate60,ate90,vigentes],backgroundColor:['#c0392b','#0A0A0A','#c0392b','#E87722','#3b6d11'],borderWidth:2,borderColor:'#F0EDE0'}]},
+    data:{labels:['Vencidos','≤30 dias','≤60 dias','≤90 dias','Vigentes >90d'],datasets:[{data:[vencidos,ate30,ate60,ate90,vigentes],backgroundColor:['#7a0c1f','#0A0A0A','#c0392b','#E87722','#3b6d11'],borderWidth:2,borderColor:'#F0EDE0'}]},
     options:{responsive:true,maintainAspectRatio:false,cutout:'60%',plugins:{legend:{display:false}}}
   });
 
@@ -1023,7 +1023,7 @@ function renderizarContratos() {
   tbody.innerHTML = '';
   contratos.forEach(c => {
     let badge, badgeCls, corDias;
-    if (c.status==='VENCIDO'){badge='VENCIDO';badgeCls='badge-vencido';corDias='#c0392b';}
+    if (c.status==='VENCIDO'){badge='VENCIDO';badgeCls='badge-vencido';corDias='#7a0c1f';}
     else if (c.status==='30D'){badge='≤30 DIAS';badgeCls='badge-30d';corDias='#0A0A0A';}
     else if (c.status==='60D'){badge='≤60 DIAS';badgeCls='badge-60d';corDias='#c0392b';}
     else if (c.status==='90D'){badge='≤90 DIAS';badgeCls='badge-90d';corDias='#E87722';}
