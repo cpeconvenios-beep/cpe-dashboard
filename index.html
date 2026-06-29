@@ -106,8 +106,9 @@ body{font-family:'Segoe UI',Arial,sans-serif;background:#F0EDE0;color:#0A0A0A;fo
 .data-table tr:hover td{background:#F5F2E8;}
 .badge{display:inline-block;padding:2px 8px;border-radius:3px;font-size:10px;font-weight:700;text-transform:uppercase;}
 .badge-vencido{background:#c0392b;color:#fff;}
-.badge-30d{background:#e6a817;color:#fff;}
-.badge-60d{background:#E87722;color:#fff;}
+.badge-30d{background:#0A0A0A;color:#fff;}
+.badge-60d{background:#c0392b;color:#fff;}
+.badge-90d{background:#E87722;color:#fff;}
 .badge-vigente{background:#3b6d11;color:#fff;}
 .repasse-card{background:#fff;border:1px solid #D4CDB8;border-radius:6px;padding:14px 16px;}
 .repasse-card .rep-fonte{font-size:12px;font-weight:700;color:#9A8A5A;margin-bottom:6px;}
@@ -273,9 +274,10 @@ body{font-family:'Segoe UI',Arial,sans-serif;background:#F0EDE0;color:#0A0A0A;fo
       <div class="chart-wrap"><canvas id="chartStatusVigencia"></canvas></div>
       <div class="chart-legend">
         <span><span class="leg-sq" style="background:#c0392b"></span>Vencidos</span>
-        <span><span class="leg-sq" style="background:#8B0000"></span>Críticos ≤30d</span>
-        <span><span class="leg-sq" style="background:#E87722"></span>Alerta ≤60d</span>
-        <span><span class="leg-sq" style="background:#5d5d3a"></span>Vigentes >60d</span>
+        <span><span class="leg-sq" style="background:#0A0A0A"></span>≤30 dias</span>
+        <span><span class="leg-sq" style="background:#c0392b"></span>≤60 dias</span>
+        <span><span class="leg-sq" style="background:#E87722"></span>≤90 dias</span>
+        <span><span class="leg-sq" style="background:#3b6d11"></span>Vigentes >90d</span>
       </div>
     </div>
     <div class="chart-card">
@@ -294,7 +296,7 @@ body{font-family:'Segoe UI',Arial,sans-serif;background:#F0EDE0;color:#0A0A0A;fo
       <span class="tit">Contratos com Etiquetas de Vigência</span>
       <span class="tot" id="total-contratos-label">Carregando...</span>
     </div>
-    <div style="overflow-x:auto;"><table class="data-table"><thead><tr><th>Status</th><th>Dias</th><th>Elem.</th><th>Empresa</th><th>Objeto</th><th>Fim Vigência</th><th>Valor Total</th><th>Empenhado</th><th>A Empenhar</th></tr></thead><tbody id="tbody-contratos"><tr><td colspan="9" style="text-align:center;padding:20px;">Carregando...</td></tr></tbody></table></div>
+    <div style="overflow-x:auto;"><table class="data-table"><thead><tr><th>Status</th><th>Dias</th><th>Elem.</th><th>Empresa</th><th>Objeto</th><th>Fim Vigência</th><th>Valor Total</th><th>Empenhado</th><th>A Empenhar</th><th>Crédito Garantido</th></tr></thead><tbody id="tbody-contratos"><tr><td colspan="10" style="text-align:center;padding:20px;">Carregando...</td></tr></tbody></table></div>
   </div>
 </div>
 
@@ -525,7 +527,7 @@ function aplicarDadosAppsScript(dados) {
         }
         if (d && !isNaN(d)) { d.setHours(0,0,0,0); dias = Math.round((d-hoje)/(864e5)); temData = true; }
       }
-      let status = !temData ? 'VIGENTE' : dias<0 ? 'VENCIDO' : dias<=30 ? '30D' : dias<=60 ? '60D' : 'VIGENTE';
+      let status = !temData ? 'VIGENTE' : dias<0 ? 'VENCIDO' : dias<=30 ? '30D' : dias<=60 ? '60D' : dias<=90 ? '90D' : 'VIGENTE';
       const saldoEmp = (typeof ct.saldoEmp==='number') ? ct.saldoEmp : parseNum(ct.saldoEmp);
       const executado = Math.max(0, emp - saldoEmp); // pago = empenhado - saldo de empenho
       lista.push({ elem:ct.elem, empresa, objeto:ct.objeto||'', fim_str, dias:temData?dias:999, status, total, emp, saldoEmp, executado, aEmp: Math.max(0,total-emp) });
@@ -670,6 +672,7 @@ function processarContratos(csv) {
     else if (dias < 0) status = 'VENCIDO';
     else if (dias <= 30) status = '30D';
     else if (dias <= 60) status = '60D';
+    else if (dias <= 90) status = '90D';
     else status = 'VIGENTE';
 
     contratos.push({ elem, empresa, objeto, fim_str, dias: temData?dias:999, status, total, emp, aEmp });
@@ -767,6 +770,7 @@ function renderizarVisaoGeral() {
   const vencidos = contratos.filter(c=>c.status==='VENCIDO').length;
   const ate30 = contratos.filter(c=>c.status==='30D').length;
   const ate60 = contratos.filter(c=>c.status==='60D').length;
+  const ate90 = contratos.filter(c=>c.status==='90D').length;
   const vigentes = contratos.filter(c=>c.status==='VIGENTE').length;
 
   document.getElementById('alerta-row-visao').innerHTML = `
@@ -776,12 +780,12 @@ function renderizarVisaoGeral() {
       <div class="alerta-sub">${vencidos} vencido${vencidos!==1?'s':''}</div>
     </div>
     <div class="alerta-card">
-      <div class="alerta-label"><span class="dot-orange"></span> VENCENDO EM ATÉ 60 DIAS</div>
-      <div class="alerta-num yellow">${ate30+ate60}</div>
-      <div class="alerta-sub">${ate30} ≤30d · ${ate60} ≤60d</div>
+      <div class="alerta-label"><span class="dot-orange"></span> VENCENDO EM ATÉ 90 DIAS</div>
+      <div class="alerta-num yellow">${ate30+ate60+ate90}</div>
+      <div class="alerta-sub">${ate30} ≤30d · ${ate60} ≤60d · ${ate90} ≤90d</div>
     </div>
     <div class="alerta-card">
-      <div class="alerta-label"><span class="dot-green"></span> VIGENTES (>60 DIAS)</div>
+      <div class="alerta-label"><span class="dot-green"></span> VIGENTES (>90 DIAS)</div>
       <div class="alerta-num green">${vigentes}</div>
       <div class="alerta-sub">Em dia</div>
     </div>
@@ -933,6 +937,7 @@ function renderizarContratos() {
   const vencidos  = contratos.filter(c=>c.status==='VENCIDO').length;
   const ate30     = contratos.filter(c=>c.status==='30D').length;
   const ate60     = contratos.filter(c=>c.status==='60D').length;
+  const ate90     = contratos.filter(c=>c.status==='90D').length;
   const vigentes  = contratos.filter(c=>c.status==='VIGENTE').length;
   const totalVal  = contratos.reduce((s,c)=>s+(c.total||0),0);
   const totalEmp  = contratos.reduce((s,c)=>s+(c.emp||0),0);
@@ -965,12 +970,12 @@ function renderizarContratos() {
       <div class="alerta-sub">${vencidos} vencido${vencidos!==1?'s':''}</div>
     </div>
     <div class="alerta-card">
-      <div class="alerta-label"><span class="dot-orange"></span> VENCENDO EM ATÉ 60 DIAS</div>
-      <div class="alerta-num yellow">${ate30+ate60}</div>
-      <div class="alerta-sub">${ate30} ≤30d · ${ate60} ≤60d</div>
+      <div class="alerta-label"><span class="dot-orange"></span> VENCENDO EM ATÉ 90 DIAS</div>
+      <div class="alerta-num yellow">${ate30+ate60+ate90}</div>
+      <div class="alerta-sub">${ate30} ≤30d · ${ate60} ≤60d · ${ate90} ≤90d</div>
     </div>
     <div class="alerta-card">
-      <div class="alerta-label"><span class="dot-green"></span> VIGENTES (>60 DIAS)</div>
+      <div class="alerta-label"><span class="dot-green"></span> VIGENTES (>90 DIAS)</div>
       <div class="alerta-num green">${vigentes}</div>
       <div class="alerta-sub">Em dia</div>
     </div>
@@ -979,7 +984,7 @@ function renderizarContratos() {
   destroyChart('chartStatusVigencia');
   chartInstances['chartStatusVigencia'] = new Chart(document.getElementById('chartStatusVigencia'),{
     type:'doughnut',
-    data:{labels:['Vencidos','Críticos ≤30d','Alerta ≤60d','Vigentes >60d'],datasets:[{data:[vencidos,ate30,ate60,vigentes],backgroundColor:['#c0392b','#8B0000','#E87722','#5d5d3a'],borderWidth:2,borderColor:'#F0EDE0'}]},
+    data:{labels:['Vencidos','≤30 dias','≤60 dias','≤90 dias','Vigentes >90d'],datasets:[{data:[vencidos,ate30,ate60,ate90,vigentes],backgroundColor:['#c0392b','#0A0A0A','#c0392b','#E87722','#3b6d11'],borderWidth:2,borderColor:'#F0EDE0'}]},
     options:{responsive:true,maintainAspectRatio:false,cutout:'60%',plugins:{legend:{display:false}}}
   });
 
@@ -992,24 +997,54 @@ function renderizarContratos() {
 
   document.getElementById('total-contratos-label').textContent = contratos.length + ' contratos';
 
+  // Calcular crédito disponível por elemento (programado de TODAS as fontes) para
+  // decidir se cada contrato tem crédito garantido conforme planejamento.
+  const progPorElem = {};
+  const prog = DADOS.programacao || {};
+  ['DPRF','DER','SEMAD'].forEach(fonte => {
+    (prog[fonte]||[]).forEach(it => {
+      const e = parseInt(it.elem)||0;
+      if (e) progPorElem[e] = (progPorElem[e]||0) + (it.total||0);
+    });
+  });
+  // Total a empenhar por elemento (para verificar cobertura do elemento)
+  const aEmpPorElem = {};
+  contratos.forEach(c => {
+    const e = parseInt(c.elem)||0;
+    if (e) aEmpPorElem[e] = (aEmpPorElem[e]||0) + (c.aEmp||0);
+  });
+  // Um elemento tem crédito garantido se o programado cobre o total a empenhar dele
+  const elemGarantido = {};
+  Object.keys(aEmpPorElem).forEach(e => {
+    elemGarantido[e] = (progPorElem[e]||0) >= aEmpPorElem[e];
+  });
+
   const tbody = document.getElementById('tbody-contratos');
   tbody.innerHTML = '';
   contratos.forEach(c => {
     let badge, badgeCls, corDias;
     if (c.status==='VENCIDO'){badge='VENCIDO';badgeCls='badge-vencido';corDias='#c0392b';}
-    else if (c.status==='30D'){badge='≤30 DIAS';badgeCls='badge-30d';corDias='#e6a817';}
-    else if (c.status==='60D'){badge='≤60 DIAS';badgeCls='badge-60d';corDias='#E87722';}
+    else if (c.status==='30D'){badge='≤30 DIAS';badgeCls='badge-30d';corDias='#0A0A0A';}
+    else if (c.status==='60D'){badge='≤60 DIAS';badgeCls='badge-60d';corDias='#c0392b';}
+    else if (c.status==='90D'){badge='≤90 DIAS';badgeCls='badge-90d';corDias='#E87722';}
     else{badge='VIGENTE';badgeCls='badge-vigente';corDias='#3b6d11';}
     const obj = c.objeto.length>40 ? c.objeto.substring(0,40)+'...' : c.objeto;
     const emp_str = c.emp > 0 ? BRL(c.emp) : 'R$ 0,00';
     const dias_str = c.dias === 999 ? '-' : c.dias;
+    // Crédito garantido: mostra o valor (verde) se o elemento tem cobertura; senão em branco
+    const e = parseInt(c.elem)||0;
+    const temGarantia = elemGarantido[e] && (c.aEmp||0) > 0;
+    const creditoCol = temGarantia
+      ? `<td style="color:#3b6d11;font-weight:700">${BRL(c.aEmp)}</td>`
+      : `<td style="color:#bbb;text-align:center">—</td>`;
     const tr = document.createElement('tr');
     tr.innerHTML = `<td><span class="badge ${badgeCls}">${badge}</span></td>
       <td style="color:${corDias};font-weight:600">${dias_str}</td>
       <td title="${elemLabel(c.elem)}" style="cursor:help">${c.elem}</td><td style="font-size:11px">${c.empresa.substring(0,45)}</td>
       <td style="font-size:11px;color:#9A8A5A">${obj}</td>
       <td>${c.fim_str||'-'}</td><td>${BRL(c.total)}</td><td>${emp_str}</td>
-      <td style="color:#a32d2d;font-weight:600">${BRL(c.aEmp)}</td>`;
+      <td style="color:#a32d2d;font-weight:600">${BRL(c.aEmp)}</td>
+      ${creditoCol}`;
     tbody.appendChild(tr);
   });
 
