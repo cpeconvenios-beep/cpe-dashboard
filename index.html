@@ -519,7 +519,11 @@ async function carregarDados() {
 
     if (dados && dados.repasses && dados.repasses.fontes) {
       aplicarDadosAppsScript(dados);
-      // Só confirma "ao vivo" se trouxe saldo válido
+      // Convênios SIRCONV são independentes do saldo de Repasses: renderiza sempre que vier algo
+      if (DADOS.sirconv && DADOS.sirconv.length > 0) {
+        renderizarSirconv();
+      }
+      // Só confirma "ao vivo" (Repasses/Contratos/Programação) se trouxe saldo válido
       if (DADOS.fontes.DPRF && DADOS.fontes.DPRF.saldo > 0) {
         document.getElementById('ultima-atualizacao').textContent = 'Sincronizado: ' + (dados.atualizado || new Date().toLocaleString('pt-BR'));
         document.getElementById('status-bar').textContent = '✓ Dados sincronizados com as planilhas (ao vivo)';
@@ -527,7 +531,6 @@ async function carregarDados() {
         renderizarRepasses();
         renderizarContratos();
         renderizarProgramacao();
-        renderizarSirconv();
       } else {
         // restaurar embutidos se a leitura veio incompleta
         DADOS.fontes = JSON.parse(JSON.stringify(DADOS_FIXOS.fontes));
@@ -1666,3 +1669,4 @@ setInterval(carregarDados, 5 * 60 * 1000);
 </script>
 </body>
 </html>
+                            
