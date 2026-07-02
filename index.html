@@ -573,107 +573,134 @@ async function carregarDados() {
   DADOS.contas = JSON.parse(JSON.stringify(DADOS_FIXOS.contas));
   DADOS.contratos = JSON.parse(JSON.stringify(DADOS_FIXOS.contratos));
   DADOS.programacao = JSON.parse(JSON.stringify(DADOS_FIXOS.programacao));
-  if (!DADOS.liquidacao) DADOS.liquidacao = [];
+  DADOS.liquidacao = [];
   DADOS.sirconv = DADOS_FIXOS.sirconv ? JSON.parse(JSON.stringify(DADOS_FIXOS.sirconv)) : [];
+
   renderizarVisaoGeral();
   renderizarRepasses();
   renderizarContratos();
   renderizarProgramacao();
   renderizarSirconv();
-  document.getElementById('status-bar').textContent = '✓ Dados atualizados em 23/06/2026';
-  document.getElementById('ultima-atualizacao').textContent = 'Atualizado: 23/06/2026';
+
+  document.getElementById('status-bar').textContent = '⏳ Carregando dados ao vivo das planilhas...';
+  document.getElementById('ultima-atualizacao').textContent = 'Carregando...';
 
   // 2) Ler dados ao vivo via Apps Script (sem proxy, direto da Google)
   try {
-    const resp = await fetch(APPS_SCRIPT_URL, {cache: 'no-store', redirect: 'follow'});
+    const url = APPS_SCRIPT_URL + (APPS_SCRIPT_URL.includes('?') ? '&' : '?') + 't=' + Date.now();
+    const resp = await fetch(url, { cache: 'no-store', redirect: 'follow' });
+
+    if (!resp.ok) {
+      throw new Error('Apps Script respondeu HTTP ' + resp.status);
+    }
+
     const dados = await resp.json();
 
-    if (dados && dados.repasses && dados.repasses.fontes) {
-      aplicarDadosAppsScript(dados);
-      // Convênios SIRCONV são independentes do saldo de Repasses.
-      // Chama sempre; o guard interno evita apagar a tela se vier vazio.
-      console.log('[SIRCONV] recebidos do Apps Script:', (dados.sirconv||[]).length, 'convênios');
-      renderizarSirconv();
-      // Confirma dados ao vivo quando vier qualquer informação útil do Apps Script.
-      const temDadosAoVivo =
-        (DADOS.contas && DADOS.contas.total > 0) ||
-        (Array.isArray(DADOS.liquidacao) && DADOS.liquidacao.length > 0) ||
-        (DADOS.fontes && (
-          (DADOS.fontes.DPRF && DADOS.fontes.DPRF.saldo > 0) ||
-          (DADOS.fontes.DER && DADOS.fontes.DER.saldo > 0) ||
-          (DADOS.fontes.SEMAD && DADOS.fontes.SEMAD.saldo > 0)
-        ));
-
-      if (temDadosAoVivo) {
-        document.getElementById('ultima-atualizacao').textContent = 'Sincronizado: ' + (dados.atualizado || new Date().toLocaleString('pt-BR'));
-        document.getElementById('status-bar').textContent = '✓ Dados sincronizados com as planilhas (ao vivo)';
-        renderizarVisaoGeral();
-        renderizarRepasses();
-        renderizarContratos();
-        renderizarProgramacao();
-      } else {
-        console.warn('Apps Script respondeu, mas sem dados úteis para renderização.', dados);
-      }
+    if (dados && dados.ok === false) {
+      throw new Error(dados.erro || 'Apps Script retornou erro sem mensagem.');
     }
-  } catch(e) {
+
+    aplicarDadosAppsScript(dados || {});
+
+    const qtdLiquidacao = Array.isArray(DADOS.liquidacao) ? DADOS.liquidacao.length : 0;
+    const totalEmp = (DADOS.liquidacao || []).reduce((s, x) => s + numDash(x.empenhado), 0);
+    const totalExe = (DADOS.liquidacao || []).reduce((s, x) => s + numDash(x.executado), 0);
+
+    console.log('[DASHBOARD] JSON recebido do Apps Script:', dados);
+    console.log('[DASHBOARD] Liquidação normalizada:', {
+      registros: qtdLiquidacao,
+      totalEmpenhado: totalEmp,
+      totalExecutado: totalExe,
+      dados: DADOS.liquidacao
+    });
+
+    renderizarVisaoGeral();
+    renderizarRepasses();
+    renderizarContratos();
+    renderizarProgramacao();
+    renderizarSirconv();
+
+    document.getElementById('ultima-atualizacao').textContent = 'Sincronizado: ' + (dados.atualizado || new Date().toLocaleString('pt-BR'));
+
+    if (qtdLiquidacao > 0) {
+      document.getElementById('status-bar').textContent = '✓ Dados sincronizados com as planilhas (ao vivo) — Liquidação: ' + qtdLiquidacao + ' registros';
+    } else {
+      document.getElementById('status-bar').textContent = '⚠ Dados ao vivo carregados, mas a aba LIQUIDAÇÃO não retornou registros. Abra a URL do Apps Script com ?debug=1.';
+    }
+  } catch (e) {
     console.warn('Leitura ao vivo indisponível, usando dados embutidos.', e);
+    document.getElementById('status-bar').textContent = '⚠ Não foi possível sincronizar ao vivo. Usando dados embutidos. Erro: ' + e.message;
+    document.getElementById('ultima-atualizacao').textContent = 'Dados embutidos';
   }
 }
 
 // Converte o JSON do Apps Script para a estrutura interna do dashboard
 function aplicarDadosAppsScript(dados) {
-  const f = (dados && dados.repasses && dados.repasses.fontes) ? dados.repasses.fontes : {};
-  const c = (dados && dados.repasses && dados.repasses.contas) ? dados.repasses.contas : {};
+  dados = dados || {};
+  const f = (dados.repasses && dados.repasses.fontes) ? dados.repasses.fontes : {};
+  const c = (dados.repasses && dados.repasses.contas) ? dados.repasses.contas : {};
 
-  // Convênios/recebidos: usa o valor do Apps Script se vier, senão mantém embutido.
+  function valorOuAtual(valor, atual) {
+    const n = numDash(valor);
+    return n > 0 ? n : numDash(atual);
+  }
+
+  function elementoOuAtual(valor, atual) {
+    const n = numDash(valor);
+    return n > 0 ? n : numDash(atual);
+  }
+
+  // Mantém o que já estava embutido caso o Apps Script não traga a parte de Repasses.
+  const atual = DADOS.fontes && DADOS.fontes.DPRF ? DADOS.fontes : DADOS_FIXOS.fontes;
   const fx = DADOS_FIXOS.fontes;
+
   DADOS.fontes = {
     DPRF: {
-      convenio: numDash(f.DPRF_conv) || fx.DPRF.convenio,
-      planejado: numDash(f.DPRF_conv) || fx.DPRF.planejado,
-      recebido: numDash(f.DPRF_receb) || fx.DPRF.recebido,
-      saldo: numDash(f.DPRF_saldo),
+      convenio: valorOuAtual(f.DPRF_conv, atual.DPRF?.convenio || fx.DPRF.convenio),
+      planejado: valorOuAtual(f.DPRF_conv, atual.DPRF?.planejado || fx.DPRF.planejado),
+      recebido: valorOuAtual(f.DPRF_receb, atual.DPRF?.recebido || fx.DPRF.recebido),
+      saldo: valorOuAtual(f.DPRF_saldo, atual.DPRF?.saldo || fx.DPRF.saldo),
       elementos: {
-        30: numDash(f.DPRF_30),
-        37: numDash(f.DPRF_37),
-        39: numDash(f.DPRF_39),
-        40: numDash(f.DPRF_40)
+        30: elementoOuAtual(f.DPRF_30, atual.DPRF?.elementos?.[30] || fx.DPRF.elementos[30]),
+        37: elementoOuAtual(f.DPRF_37, atual.DPRF?.elementos?.[37] || fx.DPRF.elementos[37]),
+        39: elementoOuAtual(f.DPRF_39, atual.DPRF?.elementos?.[39] || fx.DPRF.elementos[39]),
+        40: elementoOuAtual(f.DPRF_40, atual.DPRF?.elementos?.[40] || fx.DPRF.elementos[40])
       }
     },
     DER: {
-      convenio: numDash(f.DER_conv) || fx.DER.convenio,
-      planejado: numDash(f.DER_conv) || fx.DER.planejado,
-      recebido: numDash(f.DER_receb) || fx.DER.recebido,
-      saldo: numDash(f.DER_saldo),
+      convenio: valorOuAtual(f.DER_conv, atual.DER?.convenio || fx.DER.convenio),
+      planejado: valorOuAtual(f.DER_conv, atual.DER?.planejado || fx.DER.planejado),
+      recebido: valorOuAtual(f.DER_receb, atual.DER?.recebido || fx.DER.recebido),
+      saldo: valorOuAtual(f.DER_saldo, atual.DER?.saldo || fx.DER.saldo),
       elementos: {
-        30: numDash(f.DER_30),
-        37: numDash(f.DER_37),
-        39: numDash(f.DER_39),
-        40: numDash(f.DER_40)
+        30: elementoOuAtual(f.DER_30, atual.DER?.elementos?.[30] || fx.DER.elementos[30]),
+        37: elementoOuAtual(f.DER_37, atual.DER?.elementos?.[37] || fx.DER.elementos[37]),
+        39: elementoOuAtual(f.DER_39, atual.DER?.elementos?.[39] || fx.DER.elementos[39]),
+        40: elementoOuAtual(f.DER_40, atual.DER?.elementos?.[40] || fx.DER.elementos[40])
       }
     },
     SEMAD: {
-      convenio: numDash(f.SEMAD_conv) || fx.SEMAD.convenio,
-      planejado: numDash(f.SEMAD_conv) || fx.SEMAD.planejado,
-      recebido: numDash(f.SEMAD_receb) || fx.SEMAD.recebido,
-      saldo: numDash(f.SEMAD_saldo),
+      convenio: valorOuAtual(f.SEMAD_conv, atual.SEMAD?.convenio || fx.SEMAD.convenio),
+      planejado: valorOuAtual(f.SEMAD_conv, atual.SEMAD?.planejado || fx.SEMAD.planejado),
+      recebido: valorOuAtual(f.SEMAD_receb, atual.SEMAD?.recebido || fx.SEMAD.recebido),
+      saldo: valorOuAtual(f.SEMAD_saldo, atual.SEMAD?.saldo || fx.SEMAD.saldo),
       elementos: {
-        30: numDash(f.SEMAD_30),
-        37: numDash(f.SEMAD_37),
-        39: numDash(f.SEMAD_39),
-        40: numDash(f.SEMAD_40)
+        30: elementoOuAtual(f.SEMAD_30, atual.SEMAD?.elementos?.[30] || fx.SEMAD.elementos[30]),
+        37: elementoOuAtual(f.SEMAD_37, atual.SEMAD?.elementos?.[37] || fx.SEMAD.elementos[37]),
+        39: elementoOuAtual(f.SEMAD_39, atual.SEMAD?.elementos?.[39] || fx.SEMAD.elementos[39]),
+        40: elementoOuAtual(f.SEMAD_40, atual.SEMAD?.elementos?.[40] || fx.SEMAD.elementos[40])
       }
     }
   };
 
+  const totalContas = numDash(c.total) || (numDash(c.c1250098) + numDash(c.c1250057));
   DADOS.contas = {
-    c1250098: numDash(c.c1250098),
-    c1250057: numDash(c.c1250057),
-    total: numDash(c.total) || (numDash(c.c1250098) + numDash(c.c1250057))
+    c1250098: valorOuAtual(c.c1250098, DADOS.contas?.c1250098 || DADOS_FIXOS.contas.c1250098),
+    c1250057: valorOuAtual(c.c1250057, DADOS.contas?.c1250057 || DADOS_FIXOS.contas.c1250057),
+    total: totalContas > 0 ? totalContas : valorOuAtual(0, DADOS.contas?.total || DADOS_FIXOS.contas.total)
   };
 
   // Programação: se o Apps Script trouxer uma aba PROGRAMACAO/PROGRAMAÇÃO, usa ao vivo.
-  // Se não trouxer, mantém a programação embutida no código.
   const programacaoAoVivo = normalizarProgramacaoDash(dados.programacao);
   if (programacaoAoVivo) {
     DADOS.programacao = programacaoAoVivo;
@@ -681,7 +708,7 @@ function aplicarDadosAppsScript(dados) {
   }
 
   // Contratos: se o Apps Script trouxe lista, processa; senão mantém embutidos.
-  if (dados.contratos && dados.contratos.length > 0) {
+  if (Array.isArray(dados.contratos) && dados.contratos.length > 0) {
     const hoje = new Date();
     hoje.setHours(0, 0, 0, 0);
     const lista = [];
@@ -694,7 +721,6 @@ function aplicarDadosAppsScript(dados) {
       const emp = numDash(ct.emp || ct.empenhado || ct.valorEmpenhado);
       let fim_str = ct.fim || ct.termino || ct.vigenciaFim || '';
 
-      // Apps Script pode devolver data como objeto/ISO; normalizar para dd/mm/aaaa.
       let dias = 999;
       let temData = false;
 
@@ -754,11 +780,10 @@ function aplicarDadosAppsScript(dados) {
   }
 
   // Liquidação de despesas: empenhado e executado por fonte e elemento.
-  // Esta é a parte usada na aba Programação, tabela "Execução Orçamentária por Elemento".
   DADOS.liquidacao = normalizarLiquidacaoDash(dados.liquidacao);
   console.log('[LIQUIDAÇÃO] registros recebidos:', DADOS.liquidacao.length, DADOS.liquidacao);
 
-  // Convênios SIRCONV: usa os dados ao vivo se vierem; senão mantém os embutidos.
+  // Convênios SIRCONV.
   if (Array.isArray(dados.sirconv) && dados.sirconv.length > 0) {
     DADOS.sirconv = dados.sirconv;
   } else if (!DADOS.sirconv || DADOS.sirconv.length === 0) {
