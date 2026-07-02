@@ -149,6 +149,7 @@ body{font-family:'Segoe UI',Arial,sans-serif;background:#F0EDE0;color:#0A0A0A;fo
   <button class="tab-btn" onclick="showTab('programacao')" id="tab-programacao"><span class="tab-icon">📋</span> Programação</button>
   <button class="tab-btn" onclick="showTab('contratos')" id="tab-contratos"><span class="tab-icon">📄</span> Contratos</button>
   <button class="tab-btn" onclick="showTab('repasses')" id="tab-repasses"><span class="tab-icon">💰</span> Repasses</button>
+  <button class="tab-btn" onclick="showTab('sirconv')" id="tab-sirconv"><span class="tab-icon">🏘️</span> Convênios SIRCONV</button>
 </div>
 
 </div><!-- /sticky-header -->
@@ -344,6 +345,65 @@ body{font-family:'Segoe UI',Arial,sans-serif;background:#F0EDE0;color:#0A0A0A;fo
   </div>
 </div>
 
+<!-- ABA CONVÊNIOS SIRCONV -->
+<div class="tab-content" id="tab-content-sirconv">
+  <div class="section-header"><span class="section-num">S1</span><h2>Tomada Geral dos Convênios SIRCONV</h2></div>
+  <div class="kpi-row" id="kpi-sirconv"><div class="loading">Carregando...</div></div>
+  <hr class="section-divider"/>
+  <div class="section-header"><span class="section-num">S2</span><h2>Status dos Convênios</h2></div>
+  <div class="alerta-row" id="alerta-row-sirconv"><div class="loading">Carregando...</div></div>
+  <hr class="section-divider"/>
+  <div class="section-header"><span class="section-num">S3</span><h2>Filtros</h2></div>
+  <div style="background:#fff;border:1px solid #D4CDB8;border-radius:6px;padding:12px 16px;margin-bottom:14px;">
+    <div style="display:flex;gap:20px;flex-wrap:wrap;align-items:flex-start;">
+      <div>
+        <div style="font-size:10px;font-weight:700;color:#666;text-transform:uppercase;margin-bottom:5px;">Unidade (Fonte)</div>
+        <div class="chart-filtro" id="filtro-sirconv-unidade">
+          <button class="ativo" onclick="setSirconvUnidade('todas',this)">Todas</button>
+        </div>
+      </div>
+      <div>
+        <div style="font-size:10px;font-weight:700;color:#666;text-transform:uppercase;margin-bottom:5px;">Status Administrativo</div>
+        <div class="chart-filtro" id="filtro-sirconv-status">
+          <button class="ativo" onclick="setSirconvStatus('todos',this)">Todos</button>
+        </div>
+      </div>
+    </div>
+  </div>
+  <hr class="section-divider"/>
+  <div class="section-header"><span class="section-num">S4</span><h2>Distribuição</h2></div>
+  <div class="charts-row">
+    <div class="chart-card">
+      <div class="chart-title">Convênios por Status de Vigência</div>
+      <div class="chart-wrap"><canvas id="chartSirconvVigencia"></canvas></div>
+      <div class="chart-legend">
+        <span><span class="leg-sq" style="background:#7a0c1f"></span>Vencidos</span>
+        <span><span class="leg-sq" style="background:#0A0A0A"></span>≤30 dias</span>
+        <span><span class="leg-sq" style="background:#c0392b"></span>≤60 dias</span>
+        <span><span class="leg-sq" style="background:#E87722"></span>≤90 dias</span>
+        <span><span class="leg-sq" style="background:#3b6d11"></span>Vigentes >90d</span>
+      </div>
+    </div>
+    <div class="chart-card">
+      <div class="chart-title">Valor Liquidado vs Saldo a Liquidar</div>
+      <div class="chart-wrap"><canvas id="chartSirconvLiquidado"></canvas></div>
+      <div class="chart-legend">
+        <span><span class="leg-sq" style="background:#9A8A5A"></span>Liquidado</span>
+        <span><span class="leg-sq" style="background:#BBA96A"></span>Saldo a Liquidar</span>
+      </div>
+    </div>
+  </div>
+  <hr class="section-divider"/>
+  <div class="section-header"><span class="section-num">S5</span><h2>Convênios por Vigência (mais críticos primeiro)</h2></div>
+  <div class="table-card">
+    <div class="table-header-row">
+      <span class="tit">Convênios com Etiquetas de Vigência</span>
+      <span class="tot" id="total-sirconv-label">Carregando...</span>
+    </div>
+    <div style="overflow-x:auto;"><table class="data-table"><thead><tr><th>Status</th><th>Dias</th><th>Nº Convênio</th><th>Concedente</th><th>Unidade</th><th>Preposto</th><th>Início</th><th>Término</th><th>Valor</th><th>Liquidado</th><th>Saldo a Liquidar</th><th>% Liq.</th></tr></thead><tbody id="tbody-sirconv"><tr><td colspan="12" style="text-align:center;padding:20px;">Carregando...</td></tr></tbody></table></div>
+  </div>
+</div>
+
 
 <div style="text-align:center;padding:12px;font-size:11px;color:#aaa;border-top:1px solid #D4CDB8;margin-top:10px;">
   Execução Orçamentária CPE 2026 — Atualização automática via planilhas Google Sheets
@@ -443,10 +503,12 @@ async function carregarDados() {
   DADOS.contratos = JSON.parse(JSON.stringify(DADOS_FIXOS.contratos));
   DADOS.programacao = JSON.parse(JSON.stringify(DADOS_FIXOS.programacao));
   if (!DADOS.liquidacao) DADOS.liquidacao = [];
+  if (!DADOS.sirconv) DADOS.sirconv = [];
   renderizarVisaoGeral();
   renderizarRepasses();
   renderizarContratos();
   renderizarProgramacao();
+  renderizarSirconv();
   document.getElementById('status-bar').textContent = '✓ Dados atualizados em 23/06/2026';
   document.getElementById('ultima-atualizacao').textContent = 'Atualizado: 23/06/2026';
 
@@ -465,6 +527,7 @@ async function carregarDados() {
         renderizarRepasses();
         renderizarContratos();
         renderizarProgramacao();
+        renderizarSirconv();
       } else {
         // restaurar embutidos se a leitura veio incompleta
         DADOS.fontes = JSON.parse(JSON.stringify(DADOS_FIXOS.fontes));
@@ -544,6 +607,9 @@ function aplicarDadosAppsScript(dados) {
 
   // Liquidação de despesas: empenhado e executado por fonte e elemento (fonte confiável)
   DADOS.liquidacao = Array.isArray(dados.liquidacao) ? dados.liquidacao : [];
+
+  // Convênios SIRCONV: convênios de gestão local das unidades do interior
+  DADOS.sirconv = Array.isArray(dados.sirconv) ? dados.sirconv : [];
 }
 
 // ============================================================
@@ -1370,6 +1436,161 @@ function toggleExecItens(linhaEl, elem) {
   linhaEl.parentNode.insertBefore(trDet, linhaEl.nextSibling);
   if (seta) seta.textContent = '▾';
   linhaEl.classList.add('exec-aberta');
+}
+
+// ============================================================
+// CONVÊNIOS SIRCONV (gestão local das unidades do interior)
+// ============================================================
+let _sirconvUnidade = 'todas';
+let _sirconvStatus = 'todos';
+
+function setSirconvUnidade(u, btn) {
+  _sirconvUnidade = u;
+  document.querySelectorAll('#filtro-sirconv-unidade button').forEach(b=>b.classList.remove('ativo'));
+  if (btn) btn.classList.add('ativo');
+  renderizarSirconv();
+}
+function setSirconvStatus(s, btn) {
+  _sirconvStatus = s;
+  document.querySelectorAll('#filtro-sirconv-status button').forEach(b=>b.classList.remove('ativo'));
+  if (btn) btn.classList.add('ativo');
+  renderizarSirconv();
+}
+
+// Calcula dias até o término e classifica a vigência (mesma régua usada em Contratos)
+function classificarVigenciaSirconv(termino) {
+  if (!termino) return { dias: 999, status: 'VIGENTE' };
+  let d = null;
+  if (typeof termino === 'string' && termino.includes('/')) {
+    const p = termino.split('/');
+    if (p.length === 3) d = new Date(p[2], p[1]-1, p[0]);
+  }
+  if (!d || isNaN(d)) return { dias: 999, status: 'VIGENTE' };
+  const hoje = new Date(); hoje.setHours(0,0,0,0);
+  d.setHours(0,0,0,0);
+  const dias = Math.round((d - hoje) / 864e5);
+  const status = dias < 0 ? 'VENCIDO' : dias <= 30 ? '30D' : dias <= 60 ? '60D' : dias <= 90 ? '90D' : 'VIGENTE';
+  return { dias, status };
+}
+
+function renderizarSirconv() {
+  const bruto = DADOS.sirconv || [];
+
+  // Normaliza e calcula vigência de cada convênio
+  const conv = bruto.map(c => {
+    const v = classificarVigenciaSirconv(c.termino);
+    return Object.assign({}, c, { dias: v.dias, statusVig: v.status });
+  }).sort((a,b) => a.dias - b.dias);
+
+  // Popular filtros de Unidade (dinâmico, a partir dos dados)
+  const unidades = [...new Set(conv.map(c => c.unidade).filter(Boolean))].sort();
+  const filtroUnidadeEl = document.getElementById('filtro-sirconv-unidade');
+  if (filtroUnidadeEl && filtroUnidadeEl.dataset.pop !== String(unidades.length)) {
+    filtroUnidadeEl.innerHTML = '<button class="' + (_sirconvUnidade==='todas'?'ativo':'') + '" onclick="setSirconvUnidade(\'todas\',this)">Todas</button>'
+      + unidades.map(u => `<button class="${_sirconvUnidade===u?'ativo':''}" onclick="setSirconvUnidade('${u.replace(/'/g,"\\'")}',this)">${u}</button>`).join('');
+    filtroUnidadeEl.dataset.pop = String(unidades.length);
+  }
+  // Popular filtro de Status administrativo (Ativo/Encerrado/etc, campo "status" da planilha)
+  const statusAdmin = [...new Set(conv.map(c => c.status).filter(Boolean))].sort();
+  const filtroStatusEl = document.getElementById('filtro-sirconv-status');
+  if (filtroStatusEl && filtroStatusEl.dataset.pop !== String(statusAdmin.length)) {
+    filtroStatusEl.innerHTML = '<button class="' + (_sirconvStatus==='todos'?'ativo':'') + '" onclick="setSirconvStatus(\'todos\',this)">Todos</button>'
+      + statusAdmin.map(s => `<button class="${_sirconvStatus===s?'ativo':''}" onclick="setSirconvStatus('${s.replace(/'/g,"\\'")}',this)">${s}</button>`).join('');
+    filtroStatusEl.dataset.pop = String(statusAdmin.length);
+  }
+
+  // Aplica os filtros selecionados
+  const filtrado = conv.filter(c =>
+    (_sirconvUnidade === 'todas' || c.unidade === _sirconvUnidade) &&
+    (_sirconvStatus === 'todos' || c.status === _sirconvStatus)
+  );
+
+  // ---- Tomada Geral (cards de resumo) ----
+  const totalConv = filtrado.length;
+  const valorTotal = filtrado.reduce((s,c)=>s+(c.valor||0),0);
+  const valorLiquidado = filtrado.reduce((s,c)=>s+(c.valorLiquidado||0),0);
+  const saldoLiquidar = filtrado.reduce((s,c)=>s+(c.saldoLiquidar||0),0);
+  const pctLiqGeral = valorTotal>0 ? (valorLiquidado/valorTotal)*100 : 0;
+
+  document.getElementById('kpi-sirconv').innerHTML = `
+    <div class="kpi-card"><div class="label">Convênios (Total)</div><div class="value">${totalConv}</div><div class="sub">${_sirconvUnidade==='todas'?'Todas as unidades':_sirconvUnidade}</div></div>
+    <div class="kpi-card"><div class="label">Valor Total</div><div class="value">${BRL(valorTotal)}</div><div class="sub">Soma dos convênios filtrados</div></div>
+    <div class="kpi-card"><div class="label">Valor Liquidado</div><div class="value" style="color:#3b6d11">${BRL(valorLiquidado)}</div><div class="sub gold">${pctLiqGeral.toFixed(1)}% do total</div></div>
+    <div class="kpi-card"><div class="label">Saldo a Liquidar</div><div class="value" style="color:#a32d2d">${BRL(saldoLiquidar)}</div><div class="sub red">Ainda não liquidado</div></div>
+  `;
+
+  // ---- Cards de status de vigência ----
+  const vencidos = filtrado.filter(c=>c.statusVig==='VENCIDO').length;
+  const ate30 = filtrado.filter(c=>c.statusVig==='30D').length;
+  const ate60 = filtrado.filter(c=>c.statusVig==='60D').length;
+  const ate90 = filtrado.filter(c=>c.statusVig==='90D').length;
+  const vigentes = filtrado.filter(c=>c.statusVig==='VIGENTE').length;
+
+  document.getElementById('alerta-row-sirconv').innerHTML = `
+    <div class="alerta-card">
+      <div class="alerta-label"><span class="dot-red"></span> VENCIDOS</div>
+      <div class="alerta-num red">${vencidos}</div>
+      <div class="alerta-sub">${vencidos} vencido${vencidos!==1?'s':''}</div>
+    </div>
+    <div class="alerta-card">
+      <div class="alerta-label"><span class="dot-orange"></span> VENCENDO EM ATÉ 90 DIAS</div>
+      <div class="alerta-num yellow">${ate30+ate60+ate90}</div>
+      <div class="alerta-sub">${ate30} ≤30d · ${ate60} ≤60d · ${ate90} ≤90d</div>
+    </div>
+    <div class="alerta-card">
+      <div class="alerta-label"><span class="dot-green"></span> VIGENTES (>90 DIAS)</div>
+      <div class="alerta-num green">${vigentes}</div>
+      <div class="alerta-sub">Em dia</div>
+    </div>
+  `;
+
+  // ---- Gráficos ----
+  destroyChart('chartSirconvVigencia');
+  chartInstances['chartSirconvVigencia'] = new Chart(document.getElementById('chartSirconvVigencia'),{
+    type:'doughnut',
+    data:{labels:['Vencidos','≤30 dias','≤60 dias','≤90 dias','Vigentes >90d'],datasets:[{data:[vencidos,ate30,ate60,ate90,vigentes],backgroundColor:['#7a0c1f','#0A0A0A','#c0392b','#E87722','#3b6d11'],borderWidth:2,borderColor:'#F0EDE0'}]},
+    options:{responsive:true,maintainAspectRatio:false,cutout:'60%',plugins:{legend:{display:false}}}
+  });
+
+  destroyChart('chartSirconvLiquidado');
+  chartInstances['chartSirconvLiquidado'] = new Chart(document.getElementById('chartSirconvLiquidado'),{
+    type:'doughnut',
+    data:{labels:['Liquidado','Saldo a Liquidar'],datasets:[{data:[valorLiquidado||0.01,saldoLiquidar||0.01],backgroundColor:['#9A8A5A','#BBA96A'],borderWidth:2,borderColor:'#F0EDE0'}]},
+    options:{responsive:true,maintainAspectRatio:false,cutout:'65%',plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>BRL(c.raw)}}}}
+  });
+
+  document.getElementById('total-sirconv-label').textContent = filtrado.length + ' convênios';
+
+  // ---- Tabela com etiquetas de vigência, ordenada por dias (críticos primeiro) ----
+  const tbody = document.getElementById('tbody-sirconv');
+  tbody.innerHTML = '';
+  if (filtrado.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="12" style="text-align:center;padding:20px;color:#999;">Nenhum convênio encontrado para este filtro.</td></tr>';
+    return;
+  }
+  filtrado.forEach(c => {
+    let badge, badgeCls, corDias;
+    if (c.statusVig==='VENCIDO'){badge='VENCIDO';badgeCls='badge-vencido';corDias='#7a0c1f';}
+    else if (c.statusVig==='30D'){badge='≤30 DIAS';badgeCls='badge-30d';corDias='#0A0A0A';}
+    else if (c.statusVig==='60D'){badge='≤60 DIAS';badgeCls='badge-60d';corDias='#c0392b';}
+    else if (c.statusVig==='90D'){badge='≤90 DIAS';badgeCls='badge-90d';corDias='#E87722';}
+    else{badge='VIGENTE';badgeCls='badge-vigente';corDias='#3b6d11';}
+    const dias_str = c.dias === 999 ? '-' : c.dias;
+    const pct = (c.pctLiquidado || (c.valor>0 ? (c.valorLiquidado/c.valor*100) : 0));
+    const tr = document.createElement('tr');
+    tr.innerHTML = `<td><span class="badge ${badgeCls}">${badge}</span></td>
+      <td style="color:${corDias};font-weight:600">${dias_str}</td>
+      <td style="font-size:11px">${c.numero||''}</td>
+      <td style="font-size:11px">${(c.concedente||'').substring(0,35)}</td>
+      <td style="font-size:11px;color:#9A8A5A">${c.unidade||''}</td>
+      <td style="font-size:11px">${(c.preposto||'').substring(0,30)}</td>
+      <td>${c.inicio||'-'}</td><td>${c.termino||'-'}</td>
+      <td>${BRL(c.valor)}</td>
+      <td style="color:#3b6d11">${BRL(c.valorLiquidado)}</td>
+      <td style="color:#a32d2d;font-weight:600">${BRL(c.saldoLiquidar)}</td>
+      <td>${pct.toFixed(1)}%</td>`;
+    tbody.appendChild(tr);
+  });
 }
 
 // ============================================================
