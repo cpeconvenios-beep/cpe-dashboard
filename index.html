@@ -442,6 +442,7 @@ async function carregarDados() {
   DADOS.contas = JSON.parse(JSON.stringify(DADOS_FIXOS.contas));
   DADOS.contratos = JSON.parse(JSON.stringify(DADOS_FIXOS.contratos));
   DADOS.programacao = JSON.parse(JSON.stringify(DADOS_FIXOS.programacao));
+  if (!DADOS.liquidacao) DADOS.liquidacao = [];
   renderizarVisaoGeral();
   renderizarRepasses();
   renderizarContratos();
@@ -540,6 +541,9 @@ function aplicarDadosAppsScript(dados) {
     });
     if (lista.length > 0) { lista.sort((a,b)=>a.dias-b.dias); DADOS.contratos = lista; }
   }
+
+  // Liquidação de despesas: empenhado e executado por fonte e elemento (fonte confiável)
+  DADOS.liquidacao = Array.isArray(dados.liquidacao) ? dados.liquidacao : [];
 }
 
 // ============================================================
@@ -1245,27 +1249,31 @@ function renderizarProgramacao() {
   });
 
   // ===== Execução Orçamentária por Elemento (cruza Programação x Contratos) =====
-  renderizarExecucaoElemento(selLabel, porElem);
+  renderizarExecucaoElemento(selLabel, porElem, sel);
 }
 
-// Cruza o programado (por elemento) com empenhado/executado (dos contratos)
-function renderizarExecucaoElemento(fonteSel, programadoPorElem) {
+// Cruza o programado (por elemento) com empenhado/executado (da aba LIQUIDAÇÃO, filtrada por fonte)
+function renderizarExecucaoElemento(fonteSel, programadoPorElem, fonteRaw) {
   const tituloEl = document.getElementById('execucao-titulo');
   if (tituloEl) tituloEl.textContent = 'Programado × Empenhado × Executado × Saldo — ' + fonteSel;
 
-  const contratos = DADOS.contratos || [];
+  // Empenhado e executado vêm da aba LIQUIDAÇÃO DE DESPESAS (fonte confiável),
+  // respeitando o filtro de fonte selecionado (DPRF/DER/SEMAD ou TODAS).
+  const liq = DADOS.liquidacao || [];
   const empPorElem = {}, exePorElem = {};
-  contratos.forEach(c => {
-    const e = parseInt(c.elem) || 0;
+  liq.forEach(l => {
+    const e = parseInt(l.elem) || 0;
     if (!e) return;
-    empPorElem[e] = (empPorElem[e]||0) + (c.emp||0);
-    exePorElem[e] = (exePorElem[e]||0) + (c.executado||0);
+    // Se uma fonte específica está selecionada, filtra por ela
+    if (fonteRaw && fonteRaw !== 'TODAS' && l.fonte !== fonteRaw) return;
+    empPorElem[e] = (empPorElem[e]||0) + (l.empenhado||0);
+    exePorElem[e] = (exePorElem[e]||0) + (l.executado||0);
   });
 
   // Itens da programação da fonte selecionada, agrupados por elemento
   const prog = DADOS.programacao || {};
   const itensProgPorElem = {};
-  const fontesUsar = (fonteSel && prog[fonteSel]) ? [fonteSel] : ['DPRF','DER','SEMAD'];
+  const fontesUsar = (fonteRaw && fonteRaw !== 'TODAS' && prog[fonteRaw]) ? [fonteRaw] : ['DPRF','DER','SEMAD'];
   fontesUsar.forEach(fonte => {
     (prog[fonte]||[]).forEach(it => {
       const e = parseInt(it.elem)||0;
@@ -1282,7 +1290,7 @@ function renderizarExecucaoElemento(fonteSel, programadoPorElem) {
   const elemsOrd = [...todosElems].filter(e=>e>0).sort((a,b)=>a-b);
 
   // Guardar dados para o detalhamento expansível
-  window._execDetalhe = { itensProgPorElem, contratos };
+  window._execDetalhe = { itensProgPorElem, contratos: DADOS.contratos||[] };
 
   let tProg=0, tEmp=0, tExe=0, tSaldo=0;
   const tbody = document.getElementById('tbody-execucao');
@@ -1339,38 +1347,20 @@ function toggleExecItens(linhaEl, elem) {
 
   const dados = window._execDetalhe || {itensProgPorElem:{},contratos:[]};
   const itensProg = dados.itensProgPorElem[elem] || [];
-  const contratosElem = (dados.contratos||[]).filter(c=>parseInt(c.elem)===elem);
 
-  // Montar conteúdo unificado: programação + contratos do elemento
+  // Detalhamento enxuto: lista simples descrição → valor de cada item programado
   let html = '<td colspan="5" style="padding:0;">';
-  html += '<div style="background:#FBFAF4;border-left:3px solid #9A8A5A;padding:12px 16px;">';
-
-  // Bloco 1: Itens da Programação (o que foi planejado)
-  html += '<div style="font-size:11px;font-weight:700;color:#9A8A5A;text-transform:uppercase;margin-bottom:6px;">Programação — ' + elemLabel(elem) + '</div>';
+  html += '<div style="background:#FBFAF4;border-left:3px solid #9A8A5A;padding:10px 18px;">';
   if (itensProg.length > 0) {
-    html += '<table style="width:100%;border-collapse:collapse;margin-bottom:12px;font-size:12px;">';
-    html += '<tr style="color:#888;font-size:10px;text-transform:uppercase;"><td style="padding:3px 6px;">Item</td><td style="padding:3px 6px;">Descrição</td><td style="padding:3px 6px;text-align:right;">Programado</td></tr>';
-    itensProg.forEach(it=>{
-      html += '<tr style="border-top:1px solid #ECE8D8;"><td style="padding:4px 6px;">'+it.item+'</td><td style="padding:4px 6px;color:#555;">'+it.desc+'</td><td style="padding:4px 6px;text-align:right;font-weight:600;">'+BRL(it.total)+'</td></tr>';
+    itensProg.slice().sort((a,b)=>b.total-a.total).forEach(it=>{
+      html += '<div style="display:flex;justify-content:space-between;padding:5px 0;border-bottom:1px solid #ECE8D8;font-size:13px;">'
+           +  '<span style="color:#555;">'+it.desc+'</span>'
+           +  '<span style="font-weight:700;color:#0A0A0A;margin-left:16px;white-space:nowrap;">'+BRL(it.total)+'</span>'
+           +  '</div>';
     });
-    html += '</table>';
   } else {
-    html += '<div style="font-size:12px;color:#999;margin-bottom:12px;">Sem itens de programação para este elemento nesta fonte.</div>';
+    html += '<div style="font-size:13px;color:#999;padding:4px 0;">Sem itens de programação para este elemento.</div>';
   }
-
-  // Bloco 2: Contratos do elemento (o que foi empenhado/executado)
-  html += '<div style="font-size:11px;font-weight:700;color:#185FA5;text-transform:uppercase;margin-bottom:6px;">Contratos — ' + elemLabel(elem) + '</div>';
-  if (contratosElem.length > 0) {
-    html += '<table style="width:100%;border-collapse:collapse;font-size:12px;">';
-    html += '<tr style="color:#888;font-size:10px;text-transform:uppercase;"><td style="padding:3px 6px;">Empresa</td><td style="padding:3px 6px;text-align:right;">Empenhado</td><td style="padding:3px 6px;text-align:right;">Executado</td><td style="padding:3px 6px;text-align:right;">A Empenhar</td></tr>';
-    contratosElem.forEach(c=>{
-      html += '<tr style="border-top:1px solid #ECE8D8;"><td style="padding:4px 6px;">'+c.empresa.substring(0,40)+'</td><td style="padding:4px 6px;text-align:right;color:#9A8A5A;font-weight:600;">'+BRL(c.emp)+'</td><td style="padding:4px 6px;text-align:right;color:#185FA5;font-weight:600;">'+BRL(c.executado||0)+'</td><td style="padding:4px 6px;text-align:right;color:#a32d2d;font-weight:600;">'+BRL(c.aEmp||0)+'</td></tr>';
-    });
-    html += '</table>';
-  } else {
-    html += '<div style="font-size:12px;color:#999;">Nenhum contrato vinculado a este elemento.</div>';
-  }
-
   html += '</div></td>';
 
   const trDet = document.createElement('tr');
