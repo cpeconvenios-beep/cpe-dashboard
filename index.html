@@ -413,14 +413,14 @@ body{font-family:'Segoe UI',Arial,sans-serif;background:#F0EDE0;color:#0A0A0A;fo
 // ============================================================
 // URLs CSV DAS PLANILHAS PUBLICADAS
 // ============================================================
-const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxDQCsOsG9w-xNJSVek22tsRlR4u8fnivhnsdipX-jRv_-Pr6bRDoh7y7_f7q7jqPBrKQ/exec";
+const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycby4jUIsbfygk0QX7deHBMRXX7R_5d9OSEG2eyJp7CjL3gVaXqrSftu4y62aRweZmwymeQ/exec";
 const CSV_REPASSES = "https://docs.google.com/spreadsheets/d/e/2PACX-1vR3-UmXX2u8TCbBuEg2xO-L0SO5ODNI0039rFaiSzz1vET8TB3-H7Rn52IVqgqpmakfXqj1cV2wDiI2/pub?output=csv";
 const CSV_CONTRATOS = "https://docs.google.com/spreadsheets/d/e/2PACX-1vRtcJwBq9uDKSc0wt2eO4O4yMcGqtREy1SlUyKLDaeRNnomf3FBDTbIRocfmxlchKxJNgsiFEqis6B9/pub?output=csv";
 const URL_REPASSES = "https://corsproxy.io/?url=" + encodeURIComponent(CSV_REPASSES);
 const URL_CONTRATOS = "https://corsproxy.io/?url=" + encodeURIComponent(CSV_CONTRATOS);
 
 // Dados globais
-let DADOS = { fontes: {}, contratos: [], programacao: {}, liquidacao: [], sirconv: [] };
+let DADOS = { fontes: {}, contratos: [] };
 
 // ============================================================
 // DADOS EMBUTIDOS (atualizados em 23/06/2026)
@@ -468,80 +468,10 @@ const BRL_M = v => 'R$' + ((parseFloat(v)||0)/1e6).toFixed(2) + 'M';
 const BRL_K = v => 'R$' + ((parseFloat(v)||0)/1e3).toFixed(0) + 'K';
 
 function parseNum(s) {
-  if (typeof s === 'number') return s;
-  if (s === null || s === undefined) return 0;
-  let txt = String(s).trim();
-  if (txt === '') return 0;
-
-  // Remove R$, espaços e separadores brasileiros.
-  txt = txt
-    .replace(/R\$/g, '')
-    .replace(/\s/g, '')
-    .replace(/\u00A0/g, '')
-    .replace(/\./g, '')
-    .replace(',', '.')
-    .replace('%', '')
-    .trim();
-
-  return parseFloat(txt) || 0;
-}
-
-function numDash(v) {
-  return parseNum(v);
-}
-
-function normalizarTextoDash(v) {
-  return String(v || '')
-    .normalize('NFD')
-    .replace(/[\u0300-\u036f]/g, '')
-    .toUpperCase()
-    .trim();
-}
-
-function normalizarFonteDash(v) {
-  const t = normalizarTextoDash(v);
-
-  if (t.includes('DPRF') || t.includes('73.10') || t.includes('7310')) return 'DPRF';
-  if (t.includes('DER') || t.includes('DEER') || t.includes('83.20') || t.includes('8320')) return 'DER';
-  if (t.includes('SEMAD') || t.includes('52.20') || t.includes('5220')) return 'SEMAD';
-
-  return t;
-}
-
-function normalizarLiquidacaoDash(lista) {
-  if (!Array.isArray(lista)) return [];
-
-  return lista.map(l => {
-    const elem = parseInt(l.elem || l.elemento || l.codigoElemento || l.codigo || 0, 10) || 0;
-    const fonte = normalizarFonteDash(l.fonte || l.fonteRecurso || l.recurso || l.convenio || '');
-
-    return {
-      elem,
-      fonte,
-      cota: numDash(l.cota || l.programado || l.valorProgramado || l.valorCota),
-      empenhado: numDash(l.empenhado || l.emp || l.valorEmpenhado),
-      executado: numDash(l.executado || l.pago || l.liquidado || l.valorExecutado || l.valorPago || l.valorLiquidado)
-    };
-  }).filter(l => l.elem && l.fonte);
-}
-
-function normalizarProgramacaoDash(programacao) {
-  if (!programacao || typeof programacao !== 'object') return null;
-
-  const out = { DPRF: [], DER: [], SEMAD: [] };
-  ['DPRF', 'DER', 'SEMAD'].forEach(fonte => {
-    const arr = Array.isArray(programacao[fonte]) ? programacao[fonte] : [];
-    out[fonte] = arr.map(it => ({
-      elem: parseInt(it.elem || it.elemento || it.codigoElemento || 0, 10) || 0,
-      item: it.item || it.codigoItem || it.nItem || '',
-      desc: String(it.desc || it.descricao || it.descrição || it.objeto || '').trim(),
-      total: numDash(it.total || it.valor || it.valorProgramado || it.programado),
-      fonte
-    })).filter(it => it.elem && it.total > 0);
-  });
-
-  const totalItens = out.DPRF.length + out.DER.length + out.SEMAD.length;
-  return totalItens > 0 ? out : null;
+  if (!s || s.trim() === '') return 0;
+  // Remove R$, espaços, troca vírgula por ponto
+  let n = s.replace(/R\$\s*/g,'').replace(/\./g,'').replace(',','.').trim();
+  return parseFloat(n) || 0;
 }
 
 function parseCSV(text) {
@@ -573,217 +503,116 @@ async function carregarDados() {
   DADOS.contas = JSON.parse(JSON.stringify(DADOS_FIXOS.contas));
   DADOS.contratos = JSON.parse(JSON.stringify(DADOS_FIXOS.contratos));
   DADOS.programacao = JSON.parse(JSON.stringify(DADOS_FIXOS.programacao));
-  DADOS.liquidacao = [];
+  if (!DADOS.liquidacao) DADOS.liquidacao = [];
   DADOS.sirconv = DADOS_FIXOS.sirconv ? JSON.parse(JSON.stringify(DADOS_FIXOS.sirconv)) : [];
-
   renderizarVisaoGeral();
   renderizarRepasses();
   renderizarContratos();
   renderizarProgramacao();
   renderizarSirconv();
-
-  document.getElementById('status-bar').textContent = '⏳ Carregando dados ao vivo das planilhas...';
-  document.getElementById('ultima-atualizacao').textContent = 'Carregando...';
+  document.getElementById('status-bar').textContent = '✓ Dados atualizados em 23/06/2026';
+  document.getElementById('ultima-atualizacao').textContent = 'Atualizado: 23/06/2026';
 
   // 2) Ler dados ao vivo via Apps Script (sem proxy, direto da Google)
   try {
-    const url = APPS_SCRIPT_URL + (APPS_SCRIPT_URL.includes('?') ? '&' : '?') + 't=' + Date.now();
-    const resp = await fetch(url, { cache: 'no-store', redirect: 'follow' });
-
-    if (!resp.ok) {
-      throw new Error('Apps Script respondeu HTTP ' + resp.status);
-    }
-
+    const resp = await fetch(APPS_SCRIPT_URL, {cache: 'no-store', redirect: 'follow'});
     const dados = await resp.json();
 
-    if (dados && dados.ok === false) {
-      throw new Error(dados.erro || 'Apps Script retornou erro sem mensagem.');
+    if (dados && dados.repasses && dados.repasses.fontes) {
+      aplicarDadosAppsScript(dados);
+      // Convênios SIRCONV são independentes do saldo de Repasses.
+      // Chama sempre; o guard interno evita apagar a tela se vier vazio.
+      console.log('[SIRCONV] recebidos do Apps Script:', (dados.sirconv||[]).length, 'convênios');
+      renderizarSirconv();
+      // Só confirma "ao vivo" (Repasses/Contratos/Programação) se trouxe saldo válido
+      if (DADOS.fontes.DPRF && DADOS.fontes.DPRF.saldo > 0) {
+        document.getElementById('ultima-atualizacao').textContent = 'Sincronizado: ' + (dados.atualizado || new Date().toLocaleString('pt-BR'));
+        document.getElementById('status-bar').textContent = '✓ Dados sincronizados com as planilhas (ao vivo)';
+        renderizarVisaoGeral();
+        renderizarRepasses();
+        renderizarContratos();
+        renderizarProgramacao();
+      } else {
+        // restaurar embutidos se a leitura veio incompleta
+        DADOS.fontes = JSON.parse(JSON.stringify(DADOS_FIXOS.fontes));
+        DADOS.contas = JSON.parse(JSON.stringify(DADOS_FIXOS.contas));
+      }
     }
-
-    aplicarDadosAppsScript(dados || {});
-
-    const qtdLiquidacao = Array.isArray(DADOS.liquidacao) ? DADOS.liquidacao.length : 0;
-    const totalEmp = (DADOS.liquidacao || []).reduce((s, x) => s + numDash(x.empenhado), 0);
-    const totalExe = (DADOS.liquidacao || []).reduce((s, x) => s + numDash(x.executado), 0);
-
-    console.log('[DASHBOARD] JSON recebido do Apps Script:', dados);
-    console.log('[DASHBOARD] Liquidação normalizada:', {
-      registros: qtdLiquidacao,
-      totalEmpenhado: totalEmp,
-      totalExecutado: totalExe,
-      dados: DADOS.liquidacao
-    });
-
-    renderizarVisaoGeral();
-    renderizarRepasses();
-    renderizarContratos();
-    renderizarProgramacao();
-    renderizarSirconv();
-
-    document.getElementById('ultima-atualizacao').textContent = 'Sincronizado: ' + (dados.atualizado || new Date().toLocaleString('pt-BR'));
-
-    if (qtdLiquidacao > 0) {
-      document.getElementById('status-bar').textContent = '✓ Dados sincronizados com as planilhas (ao vivo) — Liquidação: ' + qtdLiquidacao + ' registros';
-    } else {
-      document.getElementById('status-bar').textContent = '⚠ Dados ao vivo carregados, mas a aba LIQUIDAÇÃO não retornou registros. Abra a URL do Apps Script com ?debug=1.';
-    }
-  } catch (e) {
+  } catch(e) {
     console.warn('Leitura ao vivo indisponível, usando dados embutidos.', e);
-    document.getElementById('status-bar').textContent = '⚠ Não foi possível sincronizar ao vivo. Usando dados embutidos. Erro: ' + e.message;
-    document.getElementById('ultima-atualizacao').textContent = 'Dados embutidos';
   }
 }
 
 // Converte o JSON do Apps Script para a estrutura interna do dashboard
 function aplicarDadosAppsScript(dados) {
-  dados = dados || {};
-  const f = (dados.repasses && dados.repasses.fontes) ? dados.repasses.fontes : {};
-  const c = (dados.repasses && dados.repasses.contas) ? dados.repasses.contas : {};
+  const f = dados.repasses.fontes || {};
+  const c = dados.repasses.contas || {};
 
-  function valorOuAtual(valor, atual) {
-    const n = numDash(valor);
-    return n > 0 ? n : numDash(atual);
-  }
-
-  function elementoOuAtual(valor, atual) {
-    const n = numDash(valor);
-    return n > 0 ? n : numDash(atual);
-  }
-
-  // Mantém o que já estava embutido caso o Apps Script não traga a parte de Repasses.
-  const atual = DADOS.fontes && DADOS.fontes.DPRF ? DADOS.fontes : DADOS_FIXOS.fontes;
+  // Convênios/recebidos: usa o valor do Apps Script se vier, senão mantém embutido
   const fx = DADOS_FIXOS.fontes;
-
   DADOS.fontes = {
     DPRF: {
-      convenio: valorOuAtual(f.DPRF_conv, atual.DPRF?.convenio || fx.DPRF.convenio),
-      planejado: valorOuAtual(f.DPRF_conv, atual.DPRF?.planejado || fx.DPRF.planejado),
-      recebido: valorOuAtual(f.DPRF_receb, atual.DPRF?.recebido || fx.DPRF.recebido),
-      saldo: valorOuAtual(f.DPRF_saldo, atual.DPRF?.saldo || fx.DPRF.saldo),
-      elementos: {
-        30: elementoOuAtual(f.DPRF_30, atual.DPRF?.elementos?.[30] || fx.DPRF.elementos[30]),
-        37: elementoOuAtual(f.DPRF_37, atual.DPRF?.elementos?.[37] || fx.DPRF.elementos[37]),
-        39: elementoOuAtual(f.DPRF_39, atual.DPRF?.elementos?.[39] || fx.DPRF.elementos[39]),
-        40: elementoOuAtual(f.DPRF_40, atual.DPRF?.elementos?.[40] || fx.DPRF.elementos[40])
-      }
+      convenio: f.DPRF_conv || fx.DPRF.convenio,
+      planejado: f.DPRF_conv || fx.DPRF.planejado,
+      recebido: f.DPRF_receb || fx.DPRF.recebido,
+      saldo: f.DPRF_saldo || 0,
+      elementos: { 30:f.DPRF_30||0, 37:f.DPRF_37||0, 39:f.DPRF_39||0, 40:f.DPRF_40||0 }
     },
     DER: {
-      convenio: valorOuAtual(f.DER_conv, atual.DER?.convenio || fx.DER.convenio),
-      planejado: valorOuAtual(f.DER_conv, atual.DER?.planejado || fx.DER.planejado),
-      recebido: valorOuAtual(f.DER_receb, atual.DER?.recebido || fx.DER.recebido),
-      saldo: valorOuAtual(f.DER_saldo, atual.DER?.saldo || fx.DER.saldo),
-      elementos: {
-        30: elementoOuAtual(f.DER_30, atual.DER?.elementos?.[30] || fx.DER.elementos[30]),
-        37: elementoOuAtual(f.DER_37, atual.DER?.elementos?.[37] || fx.DER.elementos[37]),
-        39: elementoOuAtual(f.DER_39, atual.DER?.elementos?.[39] || fx.DER.elementos[39]),
-        40: elementoOuAtual(f.DER_40, atual.DER?.elementos?.[40] || fx.DER.elementos[40])
-      }
+      convenio: f.DER_conv || fx.DER.convenio,
+      planejado: f.DER_conv || fx.DER.planejado,
+      recebido: f.DER_receb || fx.DER.recebido,
+      saldo: f.DER_saldo || 0,
+      elementos: { 30:f.DER_30||0, 37:f.DER_37||0, 39:f.DER_39||0, 40:f.DER_40||0 }
     },
     SEMAD: {
-      convenio: valorOuAtual(f.SEMAD_conv, atual.SEMAD?.convenio || fx.SEMAD.convenio),
-      planejado: valorOuAtual(f.SEMAD_conv, atual.SEMAD?.planejado || fx.SEMAD.planejado),
-      recebido: valorOuAtual(f.SEMAD_receb, atual.SEMAD?.recebido || fx.SEMAD.recebido),
-      saldo: valorOuAtual(f.SEMAD_saldo, atual.SEMAD?.saldo || fx.SEMAD.saldo),
-      elementos: {
-        30: elementoOuAtual(f.SEMAD_30, atual.SEMAD?.elementos?.[30] || fx.SEMAD.elementos[30]),
-        37: elementoOuAtual(f.SEMAD_37, atual.SEMAD?.elementos?.[37] || fx.SEMAD.elementos[37]),
-        39: elementoOuAtual(f.SEMAD_39, atual.SEMAD?.elementos?.[39] || fx.SEMAD.elementos[39]),
-        40: elementoOuAtual(f.SEMAD_40, atual.SEMAD?.elementos?.[40] || fx.SEMAD.elementos[40])
-      }
+      convenio: f.SEMAD_conv || fx.SEMAD.convenio,
+      planejado: f.SEMAD_conv || fx.SEMAD.planejado,
+      recebido: f.SEMAD_receb || fx.SEMAD.recebido,
+      saldo: f.SEMAD_saldo || 0,
+      elementos: { 30:f.SEMAD_30||0, 37:f.SEMAD_37||0, 39:f.SEMAD_39||0, 40:f.SEMAD_40||0 }
     }
   };
-
-  const totalContas = numDash(c.total) || (numDash(c.c1250098) + numDash(c.c1250057));
   DADOS.contas = {
-    c1250098: valorOuAtual(c.c1250098, DADOS.contas?.c1250098 || DADOS_FIXOS.contas.c1250098),
-    c1250057: valorOuAtual(c.c1250057, DADOS.contas?.c1250057 || DADOS_FIXOS.contas.c1250057),
-    total: totalContas > 0 ? totalContas : valorOuAtual(0, DADOS.contas?.total || DADOS_FIXOS.contas.total)
+    c1250098: c.c1250098 || 0,
+    c1250057: c.c1250057 || 0,
+    total: c.total || ((c.c1250098||0)+(c.c1250057||0))
   };
 
-  // Programação: se o Apps Script trouxer uma aba PROGRAMACAO/PROGRAMAÇÃO, usa ao vivo.
-  const programacaoAoVivo = normalizarProgramacaoDash(dados.programacao);
-  if (programacaoAoVivo) {
-    DADOS.programacao = programacaoAoVivo;
-    console.log('[PROGRAMAÇÃO] dados ao vivo recebidos:', programacaoAoVivo);
-  }
-
-  // Contratos: se o Apps Script trouxe lista, processa; senão mantém embutidos.
-  if (Array.isArray(dados.contratos) && dados.contratos.length > 0) {
-    const hoje = new Date();
-    hoje.setHours(0, 0, 0, 0);
+  // Contratos: se o Apps Script trouxe lista, processa; senão mantém embutidos
+  if (dados.contratos && dados.contratos.length > 0) {
+    const hoje = new Date(); hoje.setHours(0,0,0,0);
     const lista = [];
-
     dados.contratos.forEach(ct => {
-      const empresa = String(ct.empresa || '').trim();
+      const empresa = String(ct.empresa||'').trim();
       if (!empresa) return;
-
-      const total = numDash(ct.total);
-      const emp = numDash(ct.emp || ct.empenhado || ct.valorEmpenhado);
-      let fim_str = ct.fim || ct.termino || ct.vigenciaFim || '';
-
-      let dias = 999;
-      let temData = false;
-
+      const total = typeof ct.total==='number' ? ct.total : parseNum(ct.total);
+      const emp = typeof ct.emp==='number' ? ct.emp : parseNum(ct.emp);
+      let fim_str = ct.fim || '';
+      // Apps Script pode devolver data como objeto/ISO; normalizar para dd/mm/aaaa
+      let dias = 999, temData = false;
       if (fim_str) {
         let d = null;
         if (typeof fim_str === 'string' && fim_str.includes('/')) {
-          const p = fim_str.split('/');
-          if (p.length === 3) d = new Date(p[2], p[1] - 1, p[0]);
+          const p = fim_str.split('/'); if (p.length===3){ d = new Date(p[2], p[1]-1, p[0]); }
         } else {
           const tmp = new Date(fim_str);
-          if (!isNaN(tmp)) {
-            d = tmp;
-            fim_str = ('0' + d.getDate()).slice(-2) + '/' + ('0' + (d.getMonth() + 1)).slice(-2) + '/' + d.getFullYear();
-          }
+          if (!isNaN(tmp)) { d = tmp; fim_str = ('0'+d.getDate()).slice(-2)+'/'+('0'+(d.getMonth()+1)).slice(-2)+'/'+d.getFullYear(); }
         }
-        if (d && !isNaN(d)) {
-          d.setHours(0, 0, 0, 0);
-          dias = Math.round((d - hoje) / (864e5));
-          temData = true;
-        }
+        if (d && !isNaN(d)) { d.setHours(0,0,0,0); dias = Math.round((d-hoje)/(864e5)); temData = true; }
       }
-
-      const status = !temData
-        ? 'VIGENTE'
-        : dias < 0
-          ? 'VENCIDO'
-          : dias <= 30
-            ? '30D'
-            : dias <= 60
-              ? '60D'
-              : dias <= 90
-                ? '90D'
-                : 'VIGENTE';
-
-      const saldoEmp = numDash(ct.saldoEmp || ct.saldoEmpenho || ct.saldoAExecutar);
-      const executado = Math.max(0, emp - saldoEmp);
-
-      lista.push({
-        elem: parseInt(ct.elem || ct.elemento || 0, 10) || 0,
-        empresa,
-        objeto: ct.objeto || '',
-        fim_str,
-        dias: temData ? dias : 999,
-        status,
-        total,
-        emp,
-        saldoEmp,
-        executado,
-        aEmp: Math.max(0, total - emp)
-      });
+      let status = !temData ? 'VIGENTE' : dias<0 ? 'VENCIDO' : dias<=30 ? '30D' : dias<=60 ? '60D' : dias<=90 ? '90D' : 'VIGENTE';
+      const saldoEmp = (typeof ct.saldoEmp==='number') ? ct.saldoEmp : parseNum(ct.saldoEmp);
+      const executado = Math.max(0, emp - saldoEmp); // pago = empenhado - saldo de empenho
+      lista.push({ elem:ct.elem, empresa, objeto:ct.objeto||'', fim_str, dias:temData?dias:999, status, total, emp, saldoEmp, executado, aEmp: Math.max(0,total-emp) });
     });
-
-    if (lista.length > 0) {
-      lista.sort((a, b) => a.dias - b.dias);
-      DADOS.contratos = lista;
-    }
+    if (lista.length > 0) { lista.sort((a,b)=>a.dias-b.dias); DADOS.contratos = lista; }
   }
 
-  // Liquidação de despesas: empenhado e executado por fonte e elemento.
-  DADOS.liquidacao = normalizarLiquidacaoDash(dados.liquidacao);
-  console.log('[LIQUIDAÇÃO] registros recebidos:', DADOS.liquidacao.length, DADOS.liquidacao);
+  // Liquidação de despesas: empenhado e executado por fonte e elemento (fonte confiável)
+  DADOS.liquidacao = Array.isArray(dados.liquidacao) ? dados.liquidacao : [];
 
-  // Convênios SIRCONV.
+  // Convênios SIRCONV: usa os dados ao vivo se vierem; senão mantém os embutidos
   if (Array.isArray(dados.sirconv) && dados.sirconv.length > 0) {
     DADOS.sirconv = dados.sirconv;
   } else if (!DADOS.sirconv || DADOS.sirconv.length === 0) {
@@ -1500,36 +1329,28 @@ function renderizarProgramacao() {
 // Cruza o programado (por elemento) com empenhado/executado (da aba LIQUIDAÇÃO, filtrada por fonte)
 function renderizarExecucaoElemento(fonteSel, programadoPorElem, fonteRaw) {
   const tituloEl = document.getElementById('execucao-titulo');
-  if (tituloEl) {
-    tituloEl.textContent = 'Programado × Empenhado × Executado × Saldo — ' + fonteSel;
-  }
+  if (tituloEl) tituloEl.textContent = 'Programado × Empenhado × Executado × Saldo — ' + fonteSel;
 
-  const liq = Array.isArray(DADOS.liquidacao) ? DADOS.liquidacao : [];
-  const empPorElem = {};
-  const exePorElem = {};
-  const fonteFiltro = normalizarFonteDash(fonteRaw);
-
+  // Empenhado e executado vêm da aba LIQUIDAÇÃO DE DESPESAS (fonte confiável),
+  // respeitando o filtro de fonte selecionado (DPRF/DER/SEMAD ou TODAS).
+  const liq = DADOS.liquidacao || [];
+  const empPorElem = {}, exePorElem = {};
   liq.forEach(l => {
-    const e = parseInt(l.elem, 10) || 0;
-    const fonteLinha = normalizarFonteDash(l.fonte);
-
+    const e = parseInt(l.elem) || 0;
     if (!e) return;
-    if (fonteRaw && fonteRaw !== 'TODAS' && fonteLinha !== fonteFiltro) return;
-
-    empPorElem[e] = (empPorElem[e] || 0) + numDash(l.empenhado);
-    exePorElem[e] = (exePorElem[e] || 0) + numDash(l.executado);
+    // Se uma fonte específica está selecionada, filtra por ela
+    if (fonteRaw && fonteRaw !== 'TODAS' && l.fonte !== fonteRaw) return;
+    empPorElem[e] = (empPorElem[e]||0) + (l.empenhado||0);
+    exePorElem[e] = (exePorElem[e]||0) + (l.executado||0);
   });
 
-  // Itens da programação da fonte selecionada, agrupados por elemento.
+  // Itens da programação da fonte selecionada, agrupados por elemento
   const prog = DADOS.programacao || {};
   const itensProgPorElem = {};
-  const fontesUsar = fonteRaw && fonteRaw !== 'TODAS'
-    ? [fonteRaw]
-    : ['DPRF', 'DER', 'SEMAD'];
-
+  const fontesUsar = (fonteRaw && fonteRaw !== 'TODAS' && prog[fonteRaw]) ? [fonteRaw] : ['DPRF','DER','SEMAD'];
   fontesUsar.forEach(fonte => {
-    (prog[fonte] || []).forEach(it => {
-      const e = parseInt(it.elem, 10) || 0;
+    (prog[fonte]||[]).forEach(it => {
+      const e = parseInt(it.elem)||0;
       if (!e) return;
       if (!itensProgPorElem[e]) itensProgPorElem[e] = [];
       itensProgPorElem[e].push(it);
@@ -1537,93 +1358,48 @@ function renderizarExecucaoElemento(fonteSel, programadoPorElem, fonteRaw) {
   });
 
   const todosElems = new Set([
-    ...Object.keys(programadoPorElem || {}).map(Number),
-    ...Object.keys(empPorElem).map(Number),
-    ...Object.keys(exePorElem).map(Number)
+    ...Object.keys(programadoPorElem).map(Number),
+    ...Object.keys(empPorElem).map(Number)
   ]);
+  const elemsOrd = [...todosElems].filter(e=>e>0).sort((a,b)=>a-b);
 
-  const elemsOrd = [...todosElems].filter(e => e > 0).sort((a, b) => a - b);
+  // Guardar dados para o detalhamento expansível
+  window._execDetalhe = { itensProgPorElem, contratos: DADOS.contratos||[] };
 
-  // Guardar dados para o detalhamento expansível.
-  window._execDetalhe = {
-    itensProgPorElem,
-    contratos: DADOS.contratos || []
-  };
-
-  let tProg = 0;
-  let tEmp = 0;
-  let tExe = 0;
-  let tSaldo = 0;
-
+  let tProg=0, tEmp=0, tExe=0, tSaldo=0;
   const tbody = document.getElementById('tbody-execucao');
-  if (!tbody) return;
   tbody.innerHTML = '';
-
-  if (elemsOrd.length === 0) {
-    tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;padding:20px;color:#888;">Nenhum dado de execução encontrado para esta fonte.</td></tr>';
-    const lblVazio = document.getElementById('total-execucao-label');
-    if (lblVazio) lblVazio.textContent = 'Empenhado: R$ 0,00 · Executado: R$ 0,00';
-    return;
-  }
-
   elemsOrd.forEach(e => {
-    const valorProgramado = numDash(programadoPorElem ? programadoPorElem[e] : 0);
-    const valorEmpenhado = numDash(empPorElem[e]);
-    const valorExecutado = numDash(exePorElem[e]);
-    const saldo = valorProgramado - valorEmpenhado;
-
-    tProg += valorProgramado;
-    tEmp += valorEmpenhado;
-    tExe += valorExecutado;
-    tSaldo += saldo;
-
-    const corSaldo = saldo > 0
-      ? 'color:#3b6d11'
-      : saldo < 0
-        ? 'color:#a32d2d'
-        : 'color:#888';
-
+    const prog = programadoPorElem[e] || 0;
+    const emp = empPorElem[e] || 0;
+    const exe = exePorElem[e] || 0;
+    const saldo = prog - emp;
+    tProg+=prog; tEmp+=emp; tExe+=exe; tSaldo+=saldo;
+    const corSaldo = saldo > 0 ? 'color:#3b6d11' : (saldo < 0 ? 'color:#a32d2d' : 'color:#888');
     const tr = document.createElement('tr');
     tr.style.cursor = 'pointer';
     tr.className = 'exec-linha';
-    tr.setAttribute('onclick', 'toggleExecItens(this,' + e + ')');
-
-    tr.innerHTML = `
-      <td style="font-weight:600"><span class="exec-seta">▸</span> ${elemLabel(e)}</td>
-      <td>${BRL(valorProgramado)}</td>
-      <td style="color:#9A8A5A;font-weight:600">${BRL(valorEmpenhado)}</td>
-      <td style="color:#185FA5;font-weight:600">${BRL(valorExecutado)}</td>
-      <td style="${corSaldo};font-weight:600">${BRL(saldo)}</td>
-    `;
-
+    tr.setAttribute('onclick', 'toggleExecItens(this,'+e+')');
+    tr.innerHTML = `<td style="font-weight:600"><span class="exec-seta">▸</span> ${elemLabel(e)}</td>
+      <td>${BRL(prog)}</td>
+      <td style="color:#9A8A5A;font-weight:600">${BRL(emp)}</td>
+      <td style="color:#185FA5;font-weight:600">${BRL(exe)}</td>
+      <td style="${corSaldo};font-weight:600">${BRL(saldo)}</td>`;
     tbody.appendChild(tr);
   });
 
   const trTot = document.createElement('tr');
   trTot.style.borderTop = '2px solid #D4CDB8';
   trTot.style.background = '#FBFAF4';
-
-  trTot.innerHTML = `
-    <td style="font-weight:700">TOTAL</td>
+  trTot.innerHTML = `<td style="font-weight:700">TOTAL</td>
     <td style="font-weight:700">${BRL(tProg)}</td>
     <td style="font-weight:700;color:#9A8A5A">${BRL(tEmp)}</td>
     <td style="font-weight:700;color:#185FA5">${BRL(tExe)}</td>
-    <td style="font-weight:700;${tSaldo >= 0 ? 'color:#3b6d11' : 'color:#a32d2d'}">${BRL(tSaldo)}</td>
-  `;
-
+    <td style="font-weight:700;${tSaldo>=0?'color:#3b6d11':'color:#a32d2d'}">${BRL(tSaldo)}</td>`;
   tbody.appendChild(trTot);
 
   const lbl = document.getElementById('total-execucao-label');
-  if (lbl) {
-    lbl.textContent = 'Empenhado: ' + BRL(tEmp) + ' · Executado: ' + BRL(tExe);
-  }
-
-  console.log('[EXECUÇÃO PROGRAMAÇÃO]', {
-    fonte: fonteRaw,
-    registrosLiquidacao: liq.length,
-    empenhadoTotal: tEmp,
-    executadoTotal: tExe
-  });
+  if (lbl) lbl.textContent = 'Empenhado: ' + BRL(tEmp) + ' · Executado: ' + BRL(tExe);
 }
 
 // Expande/recolhe o detalhamento de itens de um elemento na tabela de execução
