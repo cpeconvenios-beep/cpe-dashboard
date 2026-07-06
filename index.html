@@ -195,6 +195,13 @@ body{font-family:'Segoe UI',Arial,sans-serif;background:#F0EDE0;color:#0A0A0A;fo
 
 <!-- ABA REPASSES -->
 <div class="tab-content" id="tab-content-repasses">
+  <div style="background:#fff;border:1px solid #D4CDB8;border-radius:6px;padding:12px 16px;margin-bottom:16px;display:flex;align-items:center;gap:16px;">
+    <label style="font-size:11px;font-weight:700;color:#666;text-transform:uppercase;">Unidade de Recurso</label>
+    <select id="filtro-unidade-repasses" onchange="renderizarRepasses()" style="border:1px solid #ccc;border-radius:4px;padding:6px 10px;font-size:13px;min-width:220px;">
+      <option value="BPMRV">BPMRV (DPRF + DER)</option>
+      <option value="BPM_MAMB">BPM MAMB (SEMAD)</option>
+    </select>
+  </div>
   <div class="section-header"><span class="section-num">R1</span><h2>Saldos Disponíveis (em caixa)</h2></div>
   <div class="saldo-cards" id="saldo-cards"><div class="loading">Carregando...</div></div>
   <hr class="section-divider"/>
@@ -950,12 +957,24 @@ function renderizarRepasses() {
   const f = DADOS.fontes;
   const c = DADOS.contas || {};
 
+  // Filtro de Unidade de Recurso: BPMRV = DPRF+DER; BPM MAMB = SEMAD
+  const selUnidade = document.getElementById('filtro-unidade-repasses') ? document.getElementById('filtro-unidade-repasses').value : 'BPMRV';
+  const fontesIncluidas = selUnidade === 'BPM_MAMB' ? ['SEMAD'] : ['DPRF','DER'];
+  const unidadeLabel = selUnidade === 'BPM_MAMB' ? 'BPM MAMB' : 'BPMRV';
+  const codigoFonte = {DPRF:'(73.10)', DER:'(83.20)', SEMAD:'(52.20)'};
+  const corFonte = {DPRF:'#0A0A0A', DER:'#888', SEMAD:'#9A8A5A'};
+  const totalUnidade = fontesIncluidas.reduce((s,fonte)=> s + (f[fonte]?.saldo||0), 0);
+
+  const cardsFonte = {
+    DPRF: `<div class="kpi-card clicavel" onclick="toggleDetalhe(this,'saldo-cards','DPRF')"><div class="label" style="color:#0A0A0A;">DPRF (73.10)</div><div class="value">${BRL(f.DPRF?.saldo||0)}</div><div class="sub">Recebido: ${BRL(f.DPRF?.recebido||0)}</div></div>`,
+    DER: `<div class="kpi-card clicavel" onclick="toggleDetalhe(this,'saldo-cards','DER')"><div class="label" style="color:#888;">DER (83.20)</div><div class="value">${BRL(f.DER?.saldo||0)}</div><div class="sub">Recebido: ${BRL(f.DER?.recebido||0)}</div></div>`,
+    SEMAD: `<div class="kpi-card clicavel" onclick="toggleDetalhe(this,'saldo-cards','SEMAD')"><div class="label" style="color:#9A8A5A;">SEMAD (52.20)</div><div class="value">${BRL(f.SEMAD?.saldo||0)}</div><div class="sub">Recebido: ${BRL(f.SEMAD?.recebido||0)}</div></div>`
+  };
+
   document.getElementById('saldo-cards').innerHTML = `
-    <div class="kpi-card clicavel" onclick="toggleDetalhe(this,'saldo-cards','total')"><div class="label">Saldo Total Disponível</div><div class="value">${BRL(c.total||0)}</div><div class="sub">1250098 + 1250057</div></div>
-    <div class="kpi-card clicavel" onclick="toggleDetalhe(this,'saldo-cards','DPRF')"><div class="label" style="color:#0A0A0A;">DPRF (73.10)</div><div class="value">${BRL(f.DPRF?.saldo||0)}</div><div class="sub">Recebido: ${BRL(f.DPRF?.recebido||0)}</div></div>
-    <div class="kpi-card clicavel" onclick="toggleDetalhe(this,'saldo-cards','DER')"><div class="label" style="color:#888;">DER (83.20)</div><div class="value">${BRL(f.DER?.saldo||0)}</div><div class="sub">Recebido: ${BRL(f.DER?.recebido||0)}</div></div>
-    <div class="kpi-card clicavel" onclick="toggleDetalhe(this,'saldo-cards','SEMAD')"><div class="label" style="color:#9A8A5A;">SEMAD (52.20)</div><div class="value">${BRL(f.SEMAD?.saldo||0)}</div><div class="sub">Recebido: ${BRL(f.SEMAD?.recebido||0)}</div></div>
-    <div class="kpi-card clicavel" onclick="toggleDetalhe(this,'saldo-cards','TODAS')"><div class="label">Todas as Fontes</div><div class="value">${BRL(c.total||0)}</div><div class="sub">DPRF + DER + SEMAD, por elemento</div></div>
+    <div class="kpi-card clicavel" onclick="toggleDetalhe(this,'saldo-cards','total')"><div class="label">Saldo Total Disponível</div><div class="value">${BRL(totalUnidade)}</div><div class="sub">Unidade: ${unidadeLabel}</div></div>
+    ${fontesIncluidas.map(fonte=>cardsFonte[fonte]).join('')}
+    <div class="kpi-card clicavel" onclick="toggleDetalhe(this,'saldo-cards','TODAS')"><div class="label">Todas as Fontes</div><div class="value">${BRL(totalUnidade)}</div><div class="sub">${unidadeLabel}, por elemento</div></div>
   `;
 
   // Detalhes: saldo por elemento de cada fonte
@@ -967,30 +986,27 @@ function renderizarRepasses() {
       ${dlinha(elemLabel(40), BRL(e[40]||0))}
       ${dlinha('Saldo Total', BRL(fd?.saldo||0), 'dourado')}`;
   };
+  const detTotal = fontesIncluidas.map(fonte => dlinha(fonte + ' ' + codigoFonte[fonte], BRL(f[fonte]?.saldo||0))).join('')
+    + dlinha('Total Disponível — ' + unidadeLabel, BRL(totalUnidade), 'dourado');
+  const detTodas = fontesIncluidas.map(fonte => `<h4>${fonte} ${codigoFonte[fonte]} — Saldo por Elemento</h4>${detElem(f[fonte])}`).join('')
+    + `<h4>Total Geral</h4>${dlinha('Saldo Disponível — ' + unidadeLabel, BRL(totalUnidade), 'dourado')}`;
   DETALHES['saldo-cards'] = {
-    total: `<h4>Saldo Disponível por Fonte</h4>
-      ${dlinha('DPRF (73.10)', BRL(f.DPRF?.saldo||0))}
-      ${dlinha('DER (83.20)', BRL(f.DER?.saldo||0))}
-      ${dlinha('SEMAD (52.20)', BRL(f.SEMAD?.saldo||0))}
-      ${dlinha('Total Disponível', BRL(c.total||0), 'dourado')}`,
+    total: `<h4>Saldo Disponível por Fonte — ${unidadeLabel}</h4>${detTotal}`,
     DPRF: `<h4>DPRF (73.10) — Saldo por Elemento</h4>${detElem(f.DPRF)}`,
     DER: `<h4>DER (83.20) — Saldo por Elemento</h4>${detElem(f.DER)}`,
     SEMAD: `<h4>SEMAD (52.20) — Saldo por Elemento</h4>${detElem(f.SEMAD)}`,
-    TODAS: `<h4>DPRF (73.10) — Saldo por Elemento</h4>${detElem(f.DPRF)}
-      <h4>DER (83.20) — Saldo por Elemento</h4>${detElem(f.DER)}
-      <h4>SEMAD (52.20) — Saldo por Elemento</h4>${detElem(f.SEMAD)}
-      <h4>Total Geral</h4>${dlinha('Saldo Disponível — Todas as Fontes', BRL(c.total||0), 'dourado')}`
+    TODAS: detTodas
   };
 
   destroyChart('chartRepFonte');
   chartInstances['chartRepFonte'] = new Chart(document.getElementById('chartRepFonte'),{
     type:'bar',
     data:{
-      labels:['DPRF (73.10)','DER (83.20)','SEMAD (52.20)'],
+      labels: fontesIncluidas.map(fonte => fonte + ' ' + codigoFonte[fonte]),
       datasets:[
-        {label:'Convênio',data:[f.DPRF?.convenio||0,f.DER?.convenio||0,f.SEMAD?.convenio||0],backgroundColor:'#BBA96A',borderRadius:3},
-        {label:'Recebido',data:[f.DPRF?.recebido||0,f.DER?.recebido||0,f.SEMAD?.recebido||0],backgroundColor:'#9A8A5A',borderRadius:3},
-        {label:'A Receber',data:[(f.DPRF?.convenio||0)-(f.DPRF?.recebido||0),(f.DER?.convenio||0)-(f.DER?.recebido||0),(f.SEMAD?.convenio||0)-(f.SEMAD?.recebido||0)],backgroundColor:'#0A0A0A',borderRadius:3}
+        {label:'Convênio',data:fontesIncluidas.map(fonte=>f[fonte]?.convenio||0),backgroundColor:'#BBA96A',borderRadius:3},
+        {label:'Recebido',data:fontesIncluidas.map(fonte=>f[fonte]?.recebido||0),backgroundColor:'#9A8A5A',borderRadius:3},
+        {label:'A Receber',data:fontesIncluidas.map(fonte=>(f[fonte]?.convenio||0)-(f[fonte]?.recebido||0)),backgroundColor:'#0A0A0A',borderRadius:3}
       ]
     },
     options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>BRL(c.raw)}}},scales:{x:{ticks:{font:{size:11}}},y:{ticks:{callback:v=>BRL_M(v),font:{size:11}},grid:{color:'rgba(0,0,0,0.05)'}}}}
@@ -999,17 +1015,18 @@ function renderizarRepasses() {
   destroyChart('chartRepSaldo');
   chartInstances['chartRepSaldo'] = new Chart(document.getElementById('chartRepSaldo'),{
     type:'doughnut',
-    data:{labels:['DPRF','DER','SEMAD'],datasets:[{data:[f.DPRF?.saldo||0.01,f.DER?.saldo||0.01,f.SEMAD?.saldo||0.01],backgroundColor:['#0A0A0A','#888','#9A8A5A'],borderWidth:2,borderColor:'#F0EDE0'}]},
+    data:{labels: fontesIncluidas, datasets:[{data: fontesIncluidas.map(fonte=>f[fonte]?.saldo||0.01), backgroundColor: fontesIncluidas.map(fonte=>corFonte[fonte]), borderWidth:2, borderColor:'#F0EDE0'}]},
     options:{responsive:true,maintainAspectRatio:false,cutout:'65%',plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>BRL(c.raw)}}}}
   });
 
   atualizarGraficoElemento();
 
-  document.getElementById('repasse-row').innerHTML = `
-    <div class="repasse-card"><div class="rep-fonte">DPRF</div><div class="rep-value">${BRL((f.DPRF?.recebido||0))}</div><div class="rep-detail">Saldo disponível: ${BRL(f.DPRF?.saldo||0)}</div></div>
-    <div class="repasse-card"><div class="rep-fonte">DER</div><div class="rep-value">${BRL((f.DER?.recebido||0))}</div><div class="rep-detail">Saldo disponível: ${BRL(f.DER?.saldo||0)}</div></div>
-    <div class="repasse-card"><div class="rep-fonte">SEMAD</div><div class="rep-value">${BRL((f.SEMAD?.recebido||0))}</div><div class="rep-detail">Saldo disponível: ${BRL(f.SEMAD?.saldo||0)}</div></div>
-  `;
+  const cardsMov = {
+    DPRF: `<div class="repasse-card"><div class="rep-fonte">DPRF</div><div class="rep-value">${BRL((f.DPRF?.recebido||0))}</div><div class="rep-detail">Saldo disponível: ${BRL(f.DPRF?.saldo||0)}</div></div>`,
+    DER: `<div class="repasse-card"><div class="rep-fonte">DER</div><div class="rep-value">${BRL((f.DER?.recebido||0))}</div><div class="rep-detail">Saldo disponível: ${BRL(f.DER?.saldo||0)}</div></div>`,
+    SEMAD: `<div class="repasse-card"><div class="rep-fonte">SEMAD</div><div class="rep-value">${BRL((f.SEMAD?.recebido||0))}</div><div class="rep-detail">Saldo disponível: ${BRL(f.SEMAD?.saldo||0)}</div></div>`
+  };
+  document.getElementById('repasse-row').innerHTML = fontesIncluidas.map(fonte=>cardsMov[fonte]).join('');
 }
 
 function atualizarGraficoElemento() {
@@ -1523,9 +1540,12 @@ function renderizarSirconv() {
   }
 
   // Aplica os filtros selecionados
+  // Quando um status específico é selecionado (ex.: "Ativo"), os convênios já VENCIDOS
+  // (vigência expirada) saem da listagem — só aparecem novamente com o filtro "Todos".
   const filtrado = conv.filter(c =>
     (_sirconvUnidade === 'todas' || c.unidade === _sirconvUnidade) &&
-    (_sirconvStatus === 'todos' || c.status === _sirconvStatus)
+    (_sirconvStatus === 'todos' || c.status === _sirconvStatus) &&
+    (_sirconvStatus === 'todos' || c.statusVig !== 'VENCIDO')
   );
 
   // ---- Tomada Geral (cards de resumo) ----
