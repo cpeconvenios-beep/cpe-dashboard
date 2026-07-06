@@ -785,7 +785,7 @@ function renderizarVisaoGeral() {
   const totalRecebido = (f.DPRF?.recebido||0)+(f.DER?.recebido||0)+(f.SEMAD?.recebido||0);
 
   document.getElementById('kpi-visao').innerHTML = `
-    <div class="kpi-card clicavel" onclick="toggleDetalhe(this,'kpi-visao','convenios')"><div class="label">Convênios (Total)</div><div class="value">${BRL(totalConvenios)}</div><div class="sub">DPRF + DER + SEMAD</div></div>
+    <div class="kpi-card clicavel" onclick="toggleDetalhe(this,'kpi-visao','convenios')"><div class="label">Previsão de Recebimento (Total)</div><div class="value">${BRL(totalConvenios)}</div><div class="sub">DPRF + DER + SEMAD</div></div>
     <div class="kpi-card clicavel" onclick="toggleDetalhe(this,'kpi-visao','recebido')"><div class="label">Recebido até o momento</div><div class="value">${BRL(totalRecebido)}</div><div class="sub">${((totalRecebido/totalConvenios)*100).toFixed(1)}% dos convênios</div></div>
     <div class="kpi-card clicavel" onclick="toggleDetalhe(this,'kpi-visao','totalcpe')"><div class="label">Saldo Total CPE</div><div class="value" style="color:#9A8A5A;">${BRL(c.total||0)}</div><div class="sub">Contas 1250098 + 1250057</div></div>
     <div class="kpi-card clicavel" onclick="toggleDetalhe(this,'kpi-visao','c98')"><div class="label">Saldo Conta 1250098</div><div class="value">${BRL(c.c1250098||0)}</div><div class="sub">Unidade Executora - 1250098</div></div>
