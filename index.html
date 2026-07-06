@@ -198,6 +198,7 @@ body{font-family:'Segoe UI',Arial,sans-serif;background:#F0EDE0;color:#0A0A0A;fo
   <div style="background:#fff;border:1px solid #D4CDB8;border-radius:6px;padding:12px 16px;margin-bottom:16px;display:flex;align-items:center;gap:16px;">
     <label style="font-size:11px;font-weight:700;color:#666;text-transform:uppercase;">Unidade de Recurso</label>
     <select id="filtro-unidade-repasses" onchange="renderizarRepasses()" style="border:1px solid #ccc;border-radius:4px;padding:6px 10px;font-size:13px;min-width:220px;">
+      <option value="TODAS">Todas as Fontes</option>
       <option value="BPMRV">BPMRV (DPRF + DER)</option>
       <option value="BPM_MAMB">BPM MAMB (SEMAD)</option>
     </select>
@@ -957,10 +958,10 @@ function renderizarRepasses() {
   const f = DADOS.fontes;
   const c = DADOS.contas || {};
 
-  // Filtro de Unidade de Recurso: BPMRV = DPRF+DER; BPM MAMB = SEMAD
-  const selUnidade = document.getElementById('filtro-unidade-repasses') ? document.getElementById('filtro-unidade-repasses').value : 'BPMRV';
-  const fontesIncluidas = selUnidade === 'BPM_MAMB' ? ['SEMAD'] : ['DPRF','DER'];
-  const unidadeLabel = selUnidade === 'BPM_MAMB' ? 'BPM MAMB' : 'BPMRV';
+  // Filtro de Unidade de Recurso: Todas = DPRF+DER+SEMAD; BPMRV = DPRF+DER; BPM MAMB = SEMAD
+  const selUnidade = document.getElementById('filtro-unidade-repasses') ? document.getElementById('filtro-unidade-repasses').value : 'TODAS';
+  const fontesIncluidas = selUnidade === 'BPM_MAMB' ? ['SEMAD'] : selUnidade === 'BPMRV' ? ['DPRF','DER'] : ['DPRF','DER','SEMAD'];
+  const unidadeLabel = selUnidade === 'BPM_MAMB' ? 'BPM MAMB' : selUnidade === 'BPMRV' ? 'BPMRV' : 'Todas as Fontes';
   const codigoFonte = {DPRF:'(73.10)', DER:'(83.20)', SEMAD:'(52.20)'};
   const corFonte = {DPRF:'#0A0A0A', DER:'#888', SEMAD:'#9A8A5A'};
   const totalUnidade = fontesIncluidas.reduce((s,fonte)=> s + (f[fonte]?.saldo||0), 0);
@@ -971,10 +972,15 @@ function renderizarRepasses() {
     SEMAD: `<div class="kpi-card clicavel" onclick="toggleDetalhe(this,'saldo-cards','SEMAD')"><div class="label" style="color:#9A8A5A;">SEMAD (52.20)</div><div class="value">${BRL(f.SEMAD?.saldo||0)}</div><div class="sub">Recebido: ${BRL(f.SEMAD?.recebido||0)}</div></div>`
   };
 
+  // O card "Todas as Fontes" só faz sentido quando há mais de uma fonte na unidade selecionada
+  const cardTodasFontes = fontesIncluidas.length > 1
+    ? `<div class="kpi-card clicavel" onclick="toggleDetalhe(this,'saldo-cards','TODAS')"><div class="label">Todas as Fontes</div><div class="value">${BRL(totalUnidade)}</div><div class="sub">${unidadeLabel}, por elemento</div></div>`
+    : '';
+
   document.getElementById('saldo-cards').innerHTML = `
     <div class="kpi-card clicavel" onclick="toggleDetalhe(this,'saldo-cards','total')"><div class="label">Saldo Total Disponível</div><div class="value">${BRL(totalUnidade)}</div><div class="sub">Unidade: ${unidadeLabel}</div></div>
     ${fontesIncluidas.map(fonte=>cardsFonte[fonte]).join('')}
-    <div class="kpi-card clicavel" onclick="toggleDetalhe(this,'saldo-cards','TODAS')"><div class="label">Todas as Fontes</div><div class="value">${BRL(totalUnidade)}</div><div class="sub">${unidadeLabel}, por elemento</div></div>
+    ${cardTodasFontes}
   `;
 
   // Detalhes: saldo por elemento de cada fonte
