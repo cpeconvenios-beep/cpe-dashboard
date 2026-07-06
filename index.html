@@ -955,6 +955,7 @@ function renderizarRepasses() {
     <div class="kpi-card clicavel" onclick="toggleDetalhe(this,'saldo-cards','DPRF')"><div class="label" style="color:#0A0A0A;">DPRF (73.10)</div><div class="value">${BRL(f.DPRF?.saldo||0)}</div><div class="sub">Recebido: ${BRL(f.DPRF?.recebido||0)}</div></div>
     <div class="kpi-card clicavel" onclick="toggleDetalhe(this,'saldo-cards','DER')"><div class="label" style="color:#888;">DER (83.20)</div><div class="value">${BRL(f.DER?.saldo||0)}</div><div class="sub">Recebido: ${BRL(f.DER?.recebido||0)}</div></div>
     <div class="kpi-card clicavel" onclick="toggleDetalhe(this,'saldo-cards','SEMAD')"><div class="label" style="color:#9A8A5A;">SEMAD (52.20)</div><div class="value">${BRL(f.SEMAD?.saldo||0)}</div><div class="sub">Recebido: ${BRL(f.SEMAD?.recebido||0)}</div></div>
+    <div class="kpi-card clicavel" onclick="toggleDetalhe(this,'saldo-cards','TODAS')"><div class="label">Todas as Fontes</div><div class="value">${BRL(c.total||0)}</div><div class="sub">DPRF + DER + SEMAD, por elemento</div></div>
   `;
 
   // Detalhes: saldo por elemento de cada fonte
@@ -974,7 +975,11 @@ function renderizarRepasses() {
       ${dlinha('Total Disponível', BRL(c.total||0), 'dourado')}`,
     DPRF: `<h4>DPRF (73.10) — Saldo por Elemento</h4>${detElem(f.DPRF)}`,
     DER: `<h4>DER (83.20) — Saldo por Elemento</h4>${detElem(f.DER)}`,
-    SEMAD: `<h4>SEMAD (52.20) — Saldo por Elemento</h4>${detElem(f.SEMAD)}`
+    SEMAD: `<h4>SEMAD (52.20) — Saldo por Elemento</h4>${detElem(f.SEMAD)}`,
+    TODAS: `<h4>DPRF (73.10) — Saldo por Elemento</h4>${detElem(f.DPRF)}
+      <h4>DER (83.20) — Saldo por Elemento</h4>${detElem(f.DER)}
+      <h4>SEMAD (52.20) — Saldo por Elemento</h4>${detElem(f.SEMAD)}
+      <h4>Total Geral</h4>${dlinha('Saldo Disponível — Todas as Fontes', BRL(c.total||0), 'dourado')}`
   };
 
   destroyChart('chartRepFonte');
@@ -1375,7 +1380,7 @@ function renderizarExecucaoElemento(fonteSel, programadoPorElem, fonteRaw) {
     const exe = exePorElem[e] || 0;
     const saldo = prog - emp;
     tProg+=prog; tEmp+=emp; tExe+=exe; tSaldo+=saldo;
-    const corSaldo = saldo > 0 ? 'color:#3b6d11' : (saldo < 0 ? 'color:#a32d2d' : 'color:#888');
+    const corSaldo = 'color:#a32d2d'; // Saldo a Empenhar sempre em vermelho
     const tr = document.createElement('tr');
     tr.style.cursor = 'pointer';
     tr.className = 'exec-linha';
@@ -1395,7 +1400,7 @@ function renderizarExecucaoElemento(fonteSel, programadoPorElem, fonteRaw) {
     <td style="font-weight:700">${BRL(tProg)}</td>
     <td style="font-weight:700;color:#9A8A5A">${BRL(tEmp)}</td>
     <td style="font-weight:700;color:#185FA5">${BRL(tExe)}</td>
-    <td style="font-weight:700;${tSaldo>=0?'color:#3b6d11':'color:#a32d2d'}">${BRL(tSaldo)}</td>`;
+    <td style="font-weight:700;color:#a32d2d">${BRL(tSaldo)}</td>`;
   tbody.appendChild(trTot);
 
   const lbl = document.getElementById('total-execucao-label');
