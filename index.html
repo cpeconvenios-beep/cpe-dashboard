@@ -1063,26 +1063,35 @@ function atualizarGraficoElemento() {
 // ============================================================
 function renderizarContratos() {
   const contratos = DADOS.contratos || [];
+  // Filtro de Elemento vindo do item C2 (Cobertura Orçamentária): aplicado a
+  // todos os demais itens da aba (C1, C3, C4, C5). O filtro de Fonte não se
+  // aplica aqui porque contratos não têm fonte de recurso vinculada — ele
+  // segue afetando apenas o cálculo de Crédito Garantido em C2.
+  const filtroElemAtivo = typeof _cobElem !== 'undefined' && _cobElem !== 'todos';
+  const contratosFiltrados = filtroElemAtivo
+    ? contratos.filter(c => String(parseInt(c.elem)||0) === String(_cobElem))
+    : contratos;
   const hoje = new Date();
 
-  const vencidos  = contratos.filter(c=>c.status==='VENCIDO').length;
-  const ate30     = contratos.filter(c=>c.status==='30D').length;
-  const ate60     = contratos.filter(c=>c.status==='60D').length;
-  const ate90     = contratos.filter(c=>c.status==='90D').length;
-  const vigentes  = contratos.filter(c=>c.status==='VIGENTE').length;
-  const totalVal  = contratos.reduce((s,c)=>s+(c.total||0),0);
-  const totalEmp  = contratos.reduce((s,c)=>s+(c.emp||0),0);
-  const totalAEmp = contratos.reduce((s,c)=>s+(c.aEmp||0),0);
+  const vencidos  = contratosFiltrados.filter(c=>c.status==='VENCIDO').length;
+  const ate30     = contratosFiltrados.filter(c=>c.status==='30D').length;
+  const ate60     = contratosFiltrados.filter(c=>c.status==='60D').length;
+  const ate90     = contratosFiltrados.filter(c=>c.status==='90D').length;
+  const vigentes  = contratosFiltrados.filter(c=>c.status==='VIGENTE').length;
+  const totalVal  = contratosFiltrados.reduce((s,c)=>s+(c.total||0),0);
+  const totalEmp  = contratosFiltrados.reduce((s,c)=>s+(c.emp||0),0);
+  const totalAEmp = contratosFiltrados.reduce((s,c)=>s+(c.aEmp||0),0);
+  const subFiltro = filtroElemAtivo ? ` · filtro: ${elemLabel(_cobElem)}` : '';
 
   document.getElementById('kpi-contratos').innerHTML = `
-    <div class="kpi-card clicavel" onclick="toggleDetalhe(this,'kpi-contratos','valor')"><div class="label">Valor Total dos Contratos</div><div class="value">${BRL(totalVal)}</div><div class="sub">${contratos.length} contratos vigentes</div></div>
+    <div class="kpi-card clicavel" onclick="toggleDetalhe(this,'kpi-contratos','valor')"><div class="label">Valor Total dos Contratos</div><div class="value">${BRL(totalVal)}</div><div class="sub">${contratosFiltrados.length} contratos vigentes${subFiltro}</div></div>
     <div class="kpi-card clicavel" onclick="toggleDetalhe(this,'kpi-contratos','empenhado')"><div class="label">Empenhado</div><div class="value">${BRL(totalEmp)}</div><div class="sub gold">${totalVal>0?((totalEmp/totalVal)*100).toFixed(1):0}% do total</div></div>
     <div class="kpi-card clicavel" onclick="toggleDetalhe(this,'kpi-contratos','aempenhar')"><div class="label">A Empenhar (cumprir contrato)</div><div class="value">${BRL(totalAEmp)}</div><div class="sub red">Necessário até fim da vigência</div></div>
   `;
 
   // Detalhes dos cards de Contratos: agrupar por elemento
   const porElem = {};
-  contratos.forEach(c => {
+  contratosFiltrados.forEach(c => {
     const e = c.elem || '—';
     if (!porElem[e]) porElem[e] = {total:0, emp:0, aEmp:0, n:0};
     porElem[e].total += c.total||0; porElem[e].emp += c.emp||0; porElem[e].aEmp += c.aEmp||0; porElem[e].n++;
@@ -1126,7 +1135,9 @@ function renderizarContratos() {
     options:{responsive:true,maintainAspectRatio:false,cutout:'65%',plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>BRL(c.raw)}}}}
   });
 
-  document.getElementById('total-contratos-label').textContent = contratos.length + ' contratos';
+  document.getElementById('total-contratos-label').textContent = filtroElemAtivo
+    ? contratosFiltrados.length + ' de ' + contratos.length + ' contratos — filtro: ' + elemLabel(_cobElem)
+    : contratosFiltrados.length + ' contratos';
 
   // Calcular crédito disponível por elemento (programado de TODAS as fontes) para
   // decidir se cada contrato tem crédito garantido conforme planejamento.
@@ -1140,7 +1151,7 @@ function renderizarContratos() {
   });
   // Total a empenhar por elemento (para verificar cobertura do elemento)
   const aEmpPorElem = {};
-  contratos.forEach(c => {
+  contratosFiltrados.forEach(c => {
     const e = parseInt(c.elem)||0;
     if (e) aEmpPorElem[e] = (aEmpPorElem[e]||0) + (c.aEmp||0);
   });
@@ -1152,7 +1163,10 @@ function renderizarContratos() {
 
   const tbody = document.getElementById('tbody-contratos');
   tbody.innerHTML = '';
-  contratos.forEach(c => {
+  if (contratosFiltrados.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="10" style="text-align:center;padding:20px;color:#888;">Nenhum contrato para o elemento selecionado.</td></tr>';
+  }
+  contratosFiltrados.forEach(c => {
     let badge, badgeCls, corDias;
     if (c.status==='VENCIDO'){badge='VENCIDO';badgeCls='badge-vencido';corDias='#7a0c1f';}
     else if (c.status==='30D'){badge='≤30 DIAS';badgeCls='badge-30d';corDias='#0A0A0A';}
@@ -1196,9 +1210,12 @@ function setCobFonte(fonte, btn) {
 }
 function setCobElem(elem, btn) {
   _cobElem = elem;
-  document.querySelectorAll('#filtro-cob-elem button').forEach(b=>b.classList.remove('ativo'));
-  if (btn) btn.classList.add('ativo');
-  renderizarCobertura();
+  // O filtro por Elemento (diferente do filtro por Fonte) se aplica a um campo
+  // que os contratos realmente possuem, então recalcula toda a aba (C1, C3, C4,
+  // C5), não só a cobertura orçamentária (C2). renderizarContratos() já
+  // reconstrói os botões deste filtro (marcando o "ativo" certo) e chama
+  // renderizarCobertura() ao final.
+  renderizarContratos();
 }
 
 // Cria os botões de elemento dinamicamente (com base nos contratos existentes)
