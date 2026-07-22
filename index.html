@@ -477,6 +477,8 @@ const BRL_M = v => 'R$' + ((parseFloat(v)||0)/1e6).toFixed(2) + 'M';
 const BRL_K = v => 'R$' + ((parseFloat(v)||0)/1e3).toFixed(0) + 'K';
 // A Receber por fonte: usa valor fixo (programação) quando definido, senão Convênio − Recebido
 function aReceberFonte(fd){ return (fd && fd.aReceber!=null) ? fd.aReceber : Math.max(0,((fd&&fd.convenio)||0)-((fd&&fd.recebido)||0)); }
+// Total de Arrecadação por fonte: DPRF = soma das programações (aReceber); DER/SEMAD = Convênio
+function arrecadacaoFonte(fd){ return (fd && fd.aReceber!=null) ? fd.aReceber : ((fd&&fd.convenio)||0); }
 
 function parseNum(s) {
   if (!s || s.trim() === '') return 0;
@@ -853,7 +855,7 @@ function renderizarVisaoGeral() {
     }
     htmlConv += `<div class="convenio-card">
       <div class="fonte-label">${labels[i]}</div>
-      <div class="convenio-value">${BRL(aReceberFonte(fd))}</div>
+      <div class="convenio-value">${BRL(arrecadacaoFonte(fd))}</div>
       <div style="font-size:11px;color:#9A8A5A;font-weight:600;margin-top:-4px;margin-bottom:8px;">Total de Arrecadação (A Receber)</div>
       <div class="detail-line">Planejado: <span style="color:#9A8A5A;font-weight:600;">${BRL(fd.planejado||0)}</span></div>
       ${retencaoHtml}
