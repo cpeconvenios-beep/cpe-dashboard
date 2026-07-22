@@ -837,16 +837,17 @@ function renderizarVisaoGeral() {
     const pct = fd.convenio > 0 ? ((fd.recebido/fd.convenio)*100).toFixed(1) : '0.0';
     // Retenções do Comando Geral
     let retencaoHtml = '';
+    let liquidoCPE = (fd.convenio||0); // Líquido CPE padrão (sem retenção, ex.: SEMAD)
     if (k === 'DER') {
       // DER: retenção de 40%
       const retencao = (fd.convenio||0) * 0.40;
-      const liquidoCPE = (fd.convenio||0) - retencao;
+      liquidoCPE = (fd.convenio||0) - retencao;
       retencaoHtml = `<div class="detail-line" style="color:#a32d2d;">Retenção Cmd Geral (40%): <span style="color:#a32d2d;font-weight:600;">${BRL(retencao)}</span></div>
       <div class="detail-line">Líquido CPE (60%): <span style="color:#3b6d11;font-weight:700;">${BRL(liquidoCPE)}</span></div>`;
     } else if (k === 'DPRF') {
       // DPRF: retenção de valor fixo (R$ 1.034.437,00)
       const retencao = 1034437.00;
-      const liquidoCPE = (fd.planejado||0); // Líquido CPE = Planejado (soma das programações 73.10)
+      liquidoCPE = (fd.planejado||0); // Líquido CPE = Planejado (soma das programações 73.10)
       const baseLiq = retencao + liquidoCPE;
       const pctRet = baseLiq > 0 ? ((retencao/baseLiq)*100).toFixed(1) : '0.0';
       const pctLiq = baseLiq > 0 ? ((liquidoCPE/baseLiq)*100).toFixed(1) : '0.0';
@@ -860,6 +861,7 @@ function renderizarVisaoGeral() {
       <div class="detail-line">Planejado: <span style="color:#9A8A5A;font-weight:600;">${BRL(fd.planejado||0)}</span></div>
       ${retencaoHtml}
       <div class="detail-line">Recebido: <span>${BRL(fd.recebido||0)}</span> (${pct}%)</div>
+      <div class="detail-line">A Receber (efetivo): <span style="color:#0A0A0A;font-weight:700;">${BRL(liquidoCPE - (fd.recebido||0))}</span></div>
       <div class="detail-line"><span class="saldo-label">Saldo atual:</span> <span class="${saldoClass}">${BRL(saldo)}</span></div>
       <div class="tipo-tag">${tipos[i]}</div>
     </div>`;
