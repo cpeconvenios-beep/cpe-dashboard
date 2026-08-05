@@ -150,6 +150,8 @@ body{font-family:'Segoe UI',Arial,sans-serif;background:#F0EDE0;color:#0A0A0A;fo
   <button class="tab-btn" onclick="showTab('contratos')" id="tab-contratos"><span class="tab-icon">📄</span> Contratos</button>
   <button class="tab-btn" onclick="showTab('repasses')" id="tab-repasses"><span class="tab-icon">💰</span> Repasses</button>
   <button class="tab-btn" onclick="showTab('sirconv')" id="tab-sirconv"><span class="tab-icon">🏘️</span> Convênios SIRCONV</button>
+
+  <button class="tab-btn" onclick="showTab('demandas')" id="tab-demandas"><span class="tab-icon">🗂️</span> Controle de Demandas</button>
 </div>
 
 </div><!-- /sticky-header -->
@@ -1723,5 +1725,29 @@ window.addEventListener('load', () => {
 // Recarregar a cada 5 minutos automaticamente
 setInterval(carregarDados, 5 * 60 * 1000);
 </script>
+
+<!-- ABA CONTROLE DE DEMANDAS -->
+<div class="tab-content" id="tab-content-demandas">
+  <div class="section-header"><span class="section-num">06</span><h2>Controle de Demandas</h2></div>
+  <div class="table-card">
+    <div class="table-header-row"><span class="tit">Demandas em Acompanhamento</span><span class="tot">11 demanda(s)</span></div>
+    <table class="data-table">
+      <thead><tr><th>Material</th><th>PA - Protocolo</th><th>Data</th><th>Origem</th><th>Status</th><th>Grau de Prioridade</th></tr></thead>
+      <tbody>
+<tr><td><strong>ETILÔMETROS PASSIVOS</strong></td><td>202607123698614-2607</td><td>07/07/2026</td><td>BPMRV</td><td>ENVIADO A PM6 PELA P4/CPE. AGUARDANDO MEMORANDO</td><td>—</td></tr>
+<tr><td><strong>MATERIAL P/ CURSOS (MUNIÇÕES E GRANADAS)</strong></td><td>202606123253638-2606</td><td>30/06/2026</td><td>—</td><td>ENVIADO A PM6 PELA P4/CPE. AGUARDANDO MEMORANDO</td><td>—</td></tr>
+<tr><td><strong>ETILÔMETROS ATIVOS</strong></td><td>—</td><td>23/07/2026</td><td>BPMRv</td><td>ENVIADO A PM6 PELA P4/CPE. AGUARDANDO MEMORANDO</td><td>—</td></tr>
+<tr><td><strong>REFORMAS FRAÇÕES RV</strong></td><td>—</td><td>07/07/2026</td><td>BPMRv</td><td>AGUARDANDO DEMANDA DA UNIDADE</td><td>—</td></tr>
+<tr><td><strong>COBERTUURA ESTACIONAMENTO CPE</strong></td><td>—</td><td>20/07/2026</td><td>CPE</td><td>AGUARDANDO ORÇAMENTOS</td><td>—</td></tr>
+<tr><td><strong>COLETES BALITISCOS BPMRV (200 UNIDADES)</strong></td><td>202607124553779-2607</td><td>23/07/2026</td><td>BPMRV</td><td>AGUARDANDO RECURSO ORÇAMENTARIO</td><td>—</td></tr>
+<tr><td><strong>MASTROS P/ BANDEIRAS (AGUARDANDO P5 CPE)</strong></td><td>SOLICITAÇÃO PESSOAL DA CAP LÍVIA</td><td>20/07/2026</td><td>CPE E UNIDADES</td><td>SERÁ ADITIVADO O SEI1250.01.0018086/2025-08</td><td>—</td></tr>
+<tr><td><strong>REPAROS DO PORTÃO DO BPMRv</strong></td><td>SOLICITAÇÃO ALMOX CPE</td><td>20/07/2026</td><td>BPMRv/CPE</td><td>SERÁ CONFECCIONADO COTEP</td><td>—</td></tr>
+<tr><td><strong>MANUTENÇÃO SISTEMA DE CÂMERAS DO BPMRv/CPE</strong></td><td>SOLICITAÇÃO DA P2/CPE</td><td>20/07/2026</td><td>BPMRv/CPE</td><td>SERÁ CONFECCIONADO PREGÃO</td><td>—</td></tr>
+<tr><td><strong>MATERIAIS BPMRv</strong></td><td>—</td><td>—</td><td>BPMRv</td><td>AGUARDANDO DEMANDA DA UNIDADE</td><td>—</td></tr>
+<tr><td><strong>NOTEBOOK</strong></td><td>SOLICITAÇÃO DA P3/CPE</td><td>13/07/2026</td><td>P3/CPE</td><td>AGUARDA DEMANDA</td><td>—</td></tr>
+      </tbody>
+    </table>
+  </div>
+</div>
 </body>
 </html>
