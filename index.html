@@ -520,11 +520,13 @@ async function carregarDados() {
   DADOS.programacao = JSON.parse(JSON.stringify(DADOS_FIXOS.programacao));
   DADOS.liquidacao = DADOS_FIXOS.liquidacao ? JSON.parse(JSON.stringify(DADOS_FIXOS.liquidacao)) : [];
   DADOS.sirconv = DADOS_FIXOS.sirconv ? JSON.parse(JSON.stringify(DADOS_FIXOS.sirconv)) : [];
+  DADOS.demandas = (dados && Array.isArray(dados.demandas)) ? dados.demandas : [];
   renderizarVisaoGeral();
   renderizarRepasses();
   renderizarContratos();
   renderizarProgramacao();
   renderizarSirconv();
+  renderizarDemandas();
   document.getElementById('status-bar').textContent = '✓ Dados atualizados em 23/06/2026';
   document.getElementById('ultima-atualizacao').textContent = 'Atualizado: 23/06/2026';
 
@@ -1520,6 +1522,27 @@ function classificarVigenciaSirconv(termino) {
   return { dias, status };
 }
 
+function renderizarDemandas(){
+  var lista = (DADOS && Array.isArray(DADOS.demandas)) ? DADOS.demandas : [];
+  var tb = document.getElementById('demandas-tbody');
+  var tot = document.getElementById('demandas-total');
+  if(tot) tot.textContent = lista.length + ' demanda(s)';
+  if(!tb) return;
+  if(!lista.length){ tb.innerHTML = '<tr><td colspan="6" style="text-align:center;color:#888;padding:20px;">Nenhuma demanda cadastrada.</td></tr>'; return; }
+  var esc = function(s){ return (s==null?'':String(s)).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); };
+  var dash = function(s){ s = esc(s); return s ? s : '\u2014'; };
+  tb.innerHTML = lista.map(function(d){
+    return '<tr>'+
+      '<td><strong>'+esc(d.material)+'</strong></td>'+
+      '<td>'+dash(d.protocolo)+'</td>'+
+      '<td>'+dash(d.data)+'</td>'+
+      '<td>'+dash(d.origem)+'</td>'+
+      '<td>'+esc(d.status)+'</td>'+
+      '<td>'+dash(d.prioridade)+'</td>'+
+    '</tr>';
+  }).join('');
+}
+
 function renderizarSirconv() {
   const bruto = DADOS.sirconv || [];
   console.log('[SIRCONV] renderizarSirconv chamado. Itens em DADOS.sirconv:', bruto.length);
@@ -1730,22 +1753,10 @@ setInterval(carregarDados, 5 * 60 * 1000);
 <div class="tab-content" id="tab-content-demandas">
   <div class="section-header"><span class="section-num">06</span><h2>Controle de Demandas</h2></div>
   <div class="table-card">
-    <div class="table-header-row"><span class="tit">Demandas em Acompanhamento</span><span class="tot">11 demanda(s)</span></div>
+    <div class="table-header-row"><span class="tit">Demandas em Acompanhamento</span><span class="tot" id="demandas-total">— demanda(s)</span></div>
     <table class="data-table">
       <thead><tr><th>Material</th><th>PA - Protocolo</th><th>Data</th><th>Origem</th><th>Status</th><th>Grau de Prioridade</th></tr></thead>
-      <tbody>
-<tr><td><strong>ETILÔMETROS PASSIVOS</strong></td><td>202607123698614-2607</td><td>07/07/2026</td><td>BPMRV</td><td>ENVIADO A PM6 PELA P4/CPE. AGUARDANDO MEMORANDO</td><td>—</td></tr>
-<tr><td><strong>MATERIAL P/ CURSOS (MUNIÇÕES E GRANADAS)</strong></td><td>202606123253638-2606</td><td>30/06/2026</td><td>—</td><td>ENVIADO A PM6 PELA P4/CPE. AGUARDANDO MEMORANDO</td><td>—</td></tr>
-<tr><td><strong>ETILÔMETROS ATIVOS</strong></td><td>—</td><td>23/07/2026</td><td>BPMRv</td><td>ENVIADO A PM6 PELA P4/CPE. AGUARDANDO MEMORANDO</td><td>—</td></tr>
-<tr><td><strong>REFORMAS FRAÇÕES RV</strong></td><td>—</td><td>07/07/2026</td><td>BPMRv</td><td>AGUARDANDO DEMANDA DA UNIDADE</td><td>—</td></tr>
-<tr><td><strong>COBERTUURA ESTACIONAMENTO CPE</strong></td><td>—</td><td>20/07/2026</td><td>CPE</td><td>AGUARDANDO ORÇAMENTOS</td><td>—</td></tr>
-<tr><td><strong>COLETES BALITISCOS BPMRV (200 UNIDADES)</strong></td><td>202607124553779-2607</td><td>23/07/2026</td><td>BPMRV</td><td>AGUARDANDO RECURSO ORÇAMENTARIO</td><td>—</td></tr>
-<tr><td><strong>MASTROS P/ BANDEIRAS (AGUARDANDO P5 CPE)</strong></td><td>SOLICITAÇÃO PESSOAL DA CAP LÍVIA</td><td>20/07/2026</td><td>CPE E UNIDADES</td><td>SERÁ ADITIVADO O SEI1250.01.0018086/2025-08</td><td>—</td></tr>
-<tr><td><strong>REPAROS DO PORTÃO DO BPMRv</strong></td><td>SOLICITAÇÃO ALMOX CPE</td><td>20/07/2026</td><td>BPMRv/CPE</td><td>SERÁ CONFECCIONADO COTEP</td><td>—</td></tr>
-<tr><td><strong>MANUTENÇÃO SISTEMA DE CÂMERAS DO BPMRv/CPE</strong></td><td>SOLICITAÇÃO DA P2/CPE</td><td>20/07/2026</td><td>BPMRv/CPE</td><td>SERÁ CONFECCIONADO PREGÃO</td><td>—</td></tr>
-<tr><td><strong>MATERIAIS BPMRv</strong></td><td>—</td><td>—</td><td>BPMRv</td><td>AGUARDANDO DEMANDA DA UNIDADE</td><td>—</td></tr>
-<tr><td><strong>NOTEBOOK</strong></td><td>SOLICITAÇÃO DA P3/CPE</td><td>13/07/2026</td><td>P3/CPE</td><td>AGUARDA DEMANDA</td><td>—</td></tr>
-      </tbody>
+      <tbody id="demandas-tbody"><tr><td colspan="6" style="text-align:center;color:#9A8A5A;padding:20px;">Carregando...</td></tr></tbody>
     </table>
   </div>
 </div>
