@@ -8,7 +8,7 @@
 <style>
 *{box-sizing:border-box;margin:0;padding:0;}
 body{font-family:'Segoe UI',Arial,sans-serif;background:#F0EDE0;color:#0A0A0A;font-size:14px;}
-.sticky-header{position:sticky;top:0;z-index:1000;box-shadow:0 2px 8px rgba(0,0,0,0.15);}
+.sticky-header{position:sticky;top:0;z-index:1000h;box-shadow:0 2px 8px rgba(0,0,0,0.15);}
 .top-bar{background:#0A0A0A;display:flex;align-items:center;justify-content:space-between;padding:10px 20px;min-height:70px;}
 .top-bar-logo{background:transparent;border-radius:0;padding:0;display:flex;align-items:center;justify-content:center;width:68px;height:68px;}
 .top-bar-logo img{width:68px;height:68px;object-fit:contain;}
@@ -1523,7 +1523,7 @@ function classificarVigenciaSirconv(termino) {
 }
 
 function renderizarDemandas(){
-  var lista = (DADOS && Array.isArray(DADOS.demandas)) ? DADOS.demandas : [];
+  var lista = ((DADOS && Array.isArray(DADOS.demandas)) ? DADOS.demandas : []).filter(function(d){ return d && String(d.material||'').trim().toUpperCase() !== 'MATERIAL / DEMANDA' && String(d.status||'').trim().toUpperCase() !== 'STATUS ATUAL'; });
   var tb = document.getElementById('demandas-tbody');
   var tot = document.getElementById('demandas-total');
   if(tot) tot.textContent = lista.length + ' demanda(s)'; var _cardsEl = document.getElementById('demandas-cards'); if(_cardsEl){ var _norm=function(s){return (s==null?'':String(s)).toUpperCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'');}; var _cls=function(s){var u=_norm(s); if(/CONFECCIONAD|ADITIVAD|PREGAO|COTEP|CONTRATA/.test(u))return 'contratacao'; if(/ORCAMENTO|RECURSO/.test(u))return 'orcamento'; if(/AGUARDA.*DEMANDA|DEMANDA DA UNIDADE/.test(u))return 'demanda'; if(/ENVIAD|MEMORANDO|AGUARDAND|TRAMIT/.test(u))return 'tramite'; return 'outras';}; var _b={demanda:0,orcamento:0,tramite:0,contratacao:0,outras:0}; lista.forEach(function(d){_b[_cls(d.status)]++;}); var _defs=[['demanda','Aguardando Demanda','dot-black','#0A0A0A'],['orcamento','Aguardando Orçamento','dot-yellow','#E6A817'],['tramite','Em Trâmite','dot-orange','#E87722'],['contratacao','Em Contratação','dot-green','#3B6D11'],['outras','Outras Situações','dot-red','#C0392B']]; _cardsEl.classList.remove('loading'); _cardsEl.innerHTML = _defs.map(function(x){return '<div class="alerta-card"><div class="alerta-label"><span class="'+x[2]+'"></span> '+x[1]+'</div><div class="alerta-num" style="color:'+x[3]+'">'+_b[x[0]]+'</div><div class="alerta-sub">demanda(s)</div></div>';}).join(''); }
