@@ -1526,7 +1526,7 @@ function renderizarDemandas(){
   var lista = (DADOS && Array.isArray(DADOS.demandas)) ? DADOS.demandas : [];
   var tb = document.getElementById('demandas-tbody');
   var tot = document.getElementById('demandas-total');
-  if(tot) tot.textContent = lista.length + ' demanda(s)';
+  if(tot) tot.textContent = lista.length + ' demanda(s)'; var _cardsEl = document.getElementById('demandas-cards'); if(_cardsEl){ var _norm=function(s){return (s==null?'':String(s)).toUpperCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'');}; var _cls=function(s){var u=_norm(s); if(/CONFECCIONAD|ADITIVAD|PREGAO|COTEP|CONTRATA/.test(u))return 'contratacao'; if(/ORCAMENTO|RECURSO/.test(u))return 'orcamento'; if(/AGUARDA.*DEMANDA|DEMANDA DA UNIDADE/.test(u))return 'demanda'; if(/ENVIAD|MEMORANDO|AGUARDAND|TRAMIT/.test(u))return 'tramite'; return 'outras';}; var _b={demanda:0,orcamento:0,tramite:0,contratacao:0,outras:0}; lista.forEach(function(d){_b[_cls(d.status)]++;}); var _defs=[['demanda','Aguardando Demanda','dot-black','#0A0A0A'],['orcamento','Aguardando Orçamento','dot-yellow','#E6A817'],['tramite','Em Trâmite','dot-orange','#E87722'],['contratacao','Em Contratação','dot-green','#3B6D11'],['outras','Outras Situações','dot-red','#C0392B']]; _cardsEl.classList.remove('loading'); _cardsEl.innerHTML = _defs.map(function(x){return '<div class="alerta-card"><div class="alerta-label"><span class="'+x[2]+'"></span> '+x[1]+'</div><div class="alerta-num" style="color:'+x[3]+'">'+_b[x[0]]+'</div><div class="alerta-sub">demanda(s)</div></div>';}).join(''); }
   if(!tb) return;
   if(!lista.length){ tb.innerHTML = '<tr><td colspan="6" style="text-align:center;color:#888;padding:20px;">Nenhuma demanda cadastrada.</td></tr>'; return; }
   var esc = function(s){ return (s==null?'':String(s)).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); };
@@ -1751,7 +1751,7 @@ setInterval(carregarDados, 5 * 60 * 1000);
 
 <!-- ABA CONTROLE DE DEMANDAS -->
 <div class="tab-content" id="tab-content-demandas">
-  <div class="section-header"><span class="section-num">06</span><h2>Controle de Demandas</h2></div>
+  <div class="section-header"><span class="section-num">06</span><h2>Controle de Demandas</h2></div>  <div class="section-header" style="margin-top:16px"><span class="section-num">R</span><h2>Resumo por Situação</h2></div>  <div class="alerta-row" id="demandas-cards"></div>
   <div class="table-card">
     <div class="table-header-row"><span class="tit">Demandas em Acompanhamento</span><span class="tot" id="demandas-total">— demanda(s)</span></div>
     <table class="data-table">
