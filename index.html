@@ -533,7 +533,7 @@ async function carregarDados() {
   // 2) Ler dados ao vivo via Apps Script (sem proxy, direto da Google)
   try {
     const resp = await fetch(APPS_SCRIPT_URL, {cache: 'no-store', redirect: 'follow'});
-    const dados = await resp.json();
+    const dados = await resp.json(); if (dados && Array.isArray(dados.demandas)) { DADOS.demandas = dados.demandas; renderizarDemandas(); }
 
     if (dados && dados.repasses && dados.repasses.fontes) {
       aplicarDadosAppsScript(dados);
@@ -1523,7 +1523,7 @@ function classificarVigenciaSirconv(termino) {
 }
 
 function renderizarDemandas(){
-  var lista = (DADOS_FIXOS && Array.isArray(DADOS_FIXOS.demandas)) ? DADOS_FIXOS.demandas : [];
+  var lista = (DADOS && Array.isArray(DADOS.demandas)) ? DADOS.demandas : [];
   var tb = document.getElementById('demandas-tbody');
   var tot = document.getElementById('demandas-total');
   if(tot) tot.textContent = lista.length + ' demanda(s)';
