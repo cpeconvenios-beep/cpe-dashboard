@@ -8,7 +8,7 @@
 <style>
 *{box-sizing:border-box;margin:0;padding:0;}
 body{font-family:'Segoe UI',Arial,sans-serif;background:#F0EDE0;color:#0A0A0A;font-size:14px;}
-.sticky-header{position:sticky;top:0;z-index:1000;box-shadow:0 2px 8px rgba(0,0,0,0.15);}
+.sticky-header{position:sticky;top:0;z-index:1000h;box-shadow:0 2px 8px rgba(0,0,0,0.15);}
 .top-bar{background:#0A0A0A;display:flex;align-items:center;justify-content:space-between;padding:10px 20px;min-height:70px;}
 .top-bar-logo{background:transparent;border-radius:0;padding:0;display:flex;align-items:center;justify-content:center;width:68px;height:68px;}
 .top-bar-logo img{width:68px;height:68px;object-fit:contain;}
@@ -520,7 +520,7 @@ async function carregarDados() {
   DADOS.programacao = JSON.parse(JSON.stringify(DADOS_FIXOS.programacao));
   DADOS.liquidacao = DADOS_FIXOS.liquidacao ? JSON.parse(JSON.stringify(DADOS_FIXOS.liquidacao)) : [];
   DADOS.sirconv = DADOS_FIXOS.sirconv ? JSON.parse(JSON.stringify(DADOS_FIXOS.sirconv)) : [];
-  DADOS.demandas = (dados && Array.isArray(dados.demandas)) ? dados.demandas : [];
+  DADOS.demandas = (DADOS_FIXOS && Array.isArray(DADOS_FIXOS.demandas)) ? DADOS_FIXOS.demandas : [];
   renderizarVisaoGeral();
   renderizarRepasses();
   renderizarContratos();
@@ -1523,7 +1523,7 @@ function classificarVigenciaSirconv(termino) {
 }
 
 function renderizarDemandas(){
-  var lista = (DADOS && Array.isArray(DADOS.demandas)) ? DADOS.demandas : [];
+  var lista = (DADOS_FIXOS && Array.isArray(DADOS_FIXOS.demandas)) ? DADOS_FIXOS.demandas : [];
   var tb = document.getElementById('demandas-tbody');
   var tot = document.getElementById('demandas-total');
   if(tot) tot.textContent = lista.length + ' demanda(s)';
