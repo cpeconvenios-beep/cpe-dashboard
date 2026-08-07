@@ -1722,7 +1722,7 @@ function toggleDetalhe(cardEl, rowId, chave) {
   const conteudo = (DETALHES[rowId] && DETALHES[rowId][chave]) ? DETALHES[rowId][chave] : '<div class="dlinha"><span class="dlabel">Sem detalhes adicionais.</span></div>';
   painel = document.createElement('div');
   painel.className = 'detalhe-painel';
-  painel.id = painelh<span class="section-num">6</span><h2>Resumo por Situação</h2>  <h2>Demandas em Acompanhamento</h2>Id;
+  painel.id = painelId;
   painel.dataset.chave = chave;
   painel.innerHTML = `<div class="detalhe-cabecalho"><span class="detalhe-origem">Detalhamento de:</span> <strong>${tituloCard}</strong></div>${conteudo}`;
 
