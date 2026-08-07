@@ -1722,7 +1722,7 @@ function toggleDetalhe(cardEl, rowId, chave) {
   const conteudo = (DETALHES[rowId] && DETALHES[rowId][chave]) ? DETALHES[rowId][chave] : '<div class="dlinha"><span class="dlabel">Sem detalhes adicionais.</span></div>';
   painel = document.createElement('div');
   painel.className = 'detalhe-painel';
-  painel.id = painelId;
+  painel.id = painelh<span class="section-num">6</span><h2>Resumo por Situação</h2>  <h2>Demandas em Acompanhamento</h2>Id;
   painel.dataset.chave = chave;
   painel.innerHTML = `<div class="detalhe-cabecalho"><span class="detalhe-origem">Detalhamento de:</span> <strong>${tituloCard}</strong></div>${conteudo}`;
 
@@ -1746,12 +1746,39 @@ window.addEventListener('load', () => {
 });
 
 // Recarregar a cada 5 minutos automaticamente
-setInterval(carregarDados, 5 * 60 * 1000);
+1749
+  
 </script>
 
 <!-- ABA CONTROLE DE DEMANDAS -->
 <div class="tab-content" id="tab-content-demandas">
-  <div class="section-header"><span class="section-num">06</span><h2>Controle de Demandas</h2></div>  <div class="section-header" style="margin-top:16px"><span class="section-num">R</span><h2>Resumo por Situação</h2></div>  <div class="alerta-row" id="demandas-cards"></div>
+
+  // Gráficos Demandas em Acompanhamento
+  function gerarGraficosDemandasSituacao(){const e={aguardando:3,emTratativa:3,emContratacao:0,outras:0},a=e.aguardando+e.emTratativa+e.emContratacao+e.outras,t=document.getElementById('chartDemandasSituacao');t&&(new Chart(t,{type:'bar',data:{labels:['Aguardando','Em Tratativa','Em Contratação','Outras'],datasets:[{label:'Quantidade',data:[e.aguardando,e.emTratativa,e.emContratacao,e.outras],backgroundColor:['#D4Af37','#E87722','#9A8A5A','#6B5B45'],borderColor:['#D4Af37','#E87722','#9A8A5A','#6B5B45'],borderWidth:1,borderRadius:4}]},options:{responsive:!0,maintainAspectRatio:!1,indexAxis:'y',plugins:{legend:{display:!1}},scales:{x:{beginAtZero:!0,max:Math.max(e.aguardando,e.emTratativa,e.emContratacao,e.outras)||5,ticks:{color:'#888',font:{size:11}},grid:{color:'#f0f0f0',drawBorder:!1}},y:{ticks:{color:'#888',font:{size:10}},grid:{display:!1,drawBorder:!1}}}}}));const r=document.getElementById('chartDemandasPorcentagem');r&&a>0&&(new Chart(r,{type:'doughnut',data:{labels:['Aguardando','Em Tratativa','Em Contratação','Outras'],datasets:[{data:[e.aguardando,e.emTratativa,e.emContratacao,e.outras],backgroundColor:['#D4Af37','#E87722','#9A8A5A','#6B5B45'],borderColor:'#fff',borderWidth:2}]},options:{responsive:!0,maintainAspectRatio:!1,plugins:{legend:{position:'bottom',labels:{font:{size:11},padding:12,color:'#555'}},tooltip:{callbacks:{label:function(e){const t=e.label||'',r=e.parsed||0,o=e.dataset.data.reduce((e,a)=>e+a,0);return t+': '+r+' ('+((r/o)*100).toFixed(1)+'%)'}}}}}))};document.addEventListener('DOMContentLoaded',function(){setTimeout(gerarGraficosDemandasSituacao,500)}); 
+  <div class="section-header"><span class="section-num">06</span><h2>Controle de Demandas</h2></div>  <div class="section-header" style="margin-top:16px"><span class="section-num">R</span><h2>Resumo por Situação</h2></div>  <div class="alerta-row" id="1754
+                                                                                                                                                                                                                                  
+                                                                                                                                                                                                                                  
+                                                                                                                                                                                                                                  <!-- Gráficos de Demandas por Situação -->
+                                                                                                                                                                                                                                  <div class="charts-row">
+        <div class="chart-card">
+                  <div class="chart-title">Demandas por Situação</div>
+                  <div class="chart-wrap">
+                                <canvas id="chartDemandasSituacao"></canvas>canvas>
+                  </div>
+                  <div class="chart-legend">
+                                <span><span class="leg-sq" style="background:#D4Af37;"></span>Aguardando Demanda</span>
+                              <span><span class="leg-sq" style="background:#E87722;"></span>Em Tratativa</span>
+                              <span><span class="leg-sq" style="background:#9A8A5A;"></span>Em Contratação</span>
+                              <span><span class="leg-sq" style="background:#6B5B45;"></span>Outras Situações</span>
+                  </div>
+        </div>
+      <div class="chart-card">
+              <div class="chart-title">Percentual por Situação</div>
+              <div class="chart-wrap" style="height: 220px;">
+                          <canvas id="chartDemandasPorcentagem"></canvas>canvas>
+              </div>
+      </div>
+  </div></span></span>
   <div class="table-card">
     <div class="table-header-row"><span class="tit">Demandas em Acompanhamento</span><span class="tot" id="demandas-total">— demanda(s)</span></div>
     <table class="data-table">
