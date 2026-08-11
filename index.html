@@ -599,6 +599,10 @@ async function carregarDados() {
   if (status) status.textContent = '⏳ Sincronizando dados ao vivo com as planilhas...';
   if (atualizado) atualizado.textContent = 'Consultando Google Sheets...';
 
+  // Garante que os dados fixos preenchem a base antes de tentar os dados ao vivo
+  if (!DADOS.programacao) DADOS.programacao = JSON.parse(JSON.stringify(DADOS_FIXOS.programacao));
+  if (!DADOS.contratos || DADOS.contratos.length === 0) DADOS.contratos = JSON.parse(JSON.stringify(DADOS_FIXOS.contratos));
+
   try {
     const dados = await carregarJSONP(APPS_SCRIPT_URL);
 
