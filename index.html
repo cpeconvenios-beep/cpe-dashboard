@@ -93,6 +93,31 @@ body{font-family:'Segoe UI',Arial,sans-serif;background:#F0EDE0;color:#0A0A0A;fo
 .alerta-card .alerta-num.yellow{color:#e6a817;}
 .alerta-card .alerta-num.green{color:#3b6d11;}
 .alerta-card .alerta-sub{font-size:11px;color:#888;margin-top:4px;}
+#demandas-cards{grid-template-columns:repeat(5,1fr);gap:10px;}
+#demandas-cards .alerta-card{padding:10px 12px;}
+#demandas-cards .alerta-card .alerta-num{font-size:26px;}
+#demandas-cards .alerta-card .alerta-label{font-size:9px;}
+@media(max-width:900px){#demandas-cards{grid-template-columns:repeat(2,1fr);}}
+.dem-row{cursor:pointer;}
+.dem-row:hover{background:#FBF9F2;}
+.dem-caret{display:inline-block;width:14px;color:#9A8A5A;transition:transform .15s;font-size:11px;}
+.dem-row.open .dem-caret{transform:rotate(90deg);}
+.dem-pct-wrap{display:flex;align-items:center;gap:8px;min-width:120px;}
+.dem-pct-bar{flex:1;height:8px;background:#EDE8DA;border-radius:5px;overflow:hidden;min-width:70px;}
+.dem-pct-fill{height:100%;background:#3B6D11;border-radius:5px;transition:width .3s;}
+.dem-pct-txt{font-size:11px;font-weight:700;color:#3B6D11;white-space:nowrap;}
+.dem-detail-row>td{background:#FBF9F2;padding:0;border-top:none;}
+.dem-detail{padding:14px 18px;}
+.dem-detail-title{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:#6B5B45;margin-bottom:10px;}
+.dem-etapas{display:grid;grid-template-columns:repeat(4,1fr);gap:6px 14px;}
+.dem-etapa{display:flex;align-items:center;gap:6px;font-size:11px;}
+.dem-etapa .et-dot{width:9px;height:9px;border-radius:50%;flex-shrink:0;}
+.et-ok{background:#3B6D11;}
+.et-mid{background:#E6A817;}
+.et-no{background:#D4CDB8;}
+.dem-etapa .et-nome{color:#5a5340;}
+.dem-etapa.done .et-nome{color:#0A0A0A;font-weight:600;}
+@media(max-width:900px){.dem-etapas{grid-template-columns:repeat(2,1fr);}}
 .filter-row{background:#fff;border:1px solid #D4CDB8;border-radius:6px;padding:12px 16px;margin-bottom:16px;display:flex;gap:24px;align-items:flex-end;flex-wrap:wrap;}
 .filter-group{display:flex;flex-direction:column;gap:4px;}
 .filter-group label{font-size:11px;font-weight:700;color:#666;text-transform:uppercase;letter-spacing:.4px;}
@@ -450,7 +475,7 @@ body{font-family:'Segoe UI',Arial,sans-serif;background:#F0EDE0;color:#0A0A0A;fo
     </div>
     <div style="overflow-x:auto;">
       <table class="data-table">
-        <thead><tr><th>Material</th><th>PA - Protocolo</th><th>Data</th><th>Origem</th><th>Status</th><th>Grau de Prioridade</th></tr></thead>
+        <thead><tr><th style="width:28px;"></th><th>Material</th><th>PA - Protocolo</th><th>Data</th><th>Origem</th><th>Status</th><th>Progresso</th></tr></thead>
         <tbody id="demandas-tbody"><tr><td colspan="6" style="text-align:center;color:#9A8A5A;padding:20px;">Carregando...</td></tr></tbody>
       </table>
     </div>
@@ -1600,6 +1625,14 @@ function classificarVigenciaSirconv(termino) {
   return { dias, status };
 }
 
+function toggleDemanda(i){
+  var row = document.getElementById('dem-row-'+i);
+  var det = document.getElementById('dem-detail-'+i);
+  if(!row || !det) return;
+  var aberto = det.style.display !== 'none';
+  det.style.display = aberto ? 'none' : '';
+  if(aberto){ row.classList.remove('open'); } else { row.classList.add('open'); }
+}
 function renderizarDemandas(){
   var lista = ((DADOS && Array.isArray(DADOS.demandas)) ? DADOS.demandas : []).filter(function(d){ return d && String(d.material||'').trim().toUpperCase() !== 'MATERIAL / DEMANDA' && String(d.status||'').trim().toUpperCase() !== 'STATUS ATUAL'; });
   var tb = document.getElementById('demandas-tbody');
@@ -1609,16 +1642,42 @@ function renderizarDemandas(){
   if(!lista.length){ tb.innerHTML = '<tr><td colspan="6" style="text-align:center;color:#888;padding:20px;">Nenhuma demanda cadastrada.</td></tr>'; return; }
   var esc = function(s){ return (s==null?'':String(s)).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); };
   var dash = function(s){ s = esc(s); return s ? s : '\u2014'; };
-  tb.innerHTML = lista.map(function(d){
-    return '<tr>'+
-      '<td><strong>'+esc(d.material)+'</strong></td>'+
-      '<td>'+dash(d.protocolo)+'</td>'+
-      '<td>'+dash(d.data)+'</td>'+
-      '<td>'+dash(d.origem)+'</td>'+
-      '<td>'+esc(d.status)+'</td>'+
-      '<td>'+dash(d.prioridade)+'</td>'+
-    '</tr>';
-  }).join('');
+  var _normET = function(s){ return String(s==null?'':s).toUpperCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').trim(); };
+  var _NOMES = ['DOD','3 Or\u00e7amentos','Garantia Or\u00e7ament\u00e1ria','ETP','Termo de Refer\u00eancia','Edital / Aviso','Cadastro Solicita\u00e7\u00e3o de Compra','Aprova\u00e7\u00e3o Solicita\u00e7\u00e3o de Compra','Cadastro Pedido de Compra','Aprova\u00e7\u00e3o Pedido de Compra','Cadastro Processo de Compra','An\u00e1lise Jur\u00eddica','Aprova\u00e7\u00e3o Autoridade Competente','Cadastro Procedimento e Lotes','Publica\u00e7\u00e3o / Disponibiliza\u00e7\u00e3o','Adjudica\u00e7\u00e3o / Homologa\u00e7\u00e3o'];
+  var _pontos = function(u){ if(u==='CONCLUIDO')return 1; if(u==='EM ANDAMENTO')return 0.5; return 0; };
+  var _pct = function(etapas){ if(!Array.isArray(etapas)||!etapas.length) return 0; var s=0; etapas.forEach(function(e){ s+=_pontos(_normET(e)); }); return Math.round(s/16*1000)/10; };
+  var html = '';
+  lista.forEach(function(d, i){
+    var etapas = Array.isArray(d.etapas) ? d.etapas : [];
+    var pct = _pct(etapas);
+    var pctInt = Math.round(pct);
+    html +=
+      '<tr class="dem-row" onclick="toggleDemanda('+i+')" id="dem-row-'+i+'">'+
+        '<td><span class="dem-caret">\u25B6</span></td>'+
+        '<td><strong>'+esc(d.material)+'</strong></td>'+
+        '<td>'+dash(d.protocolo)+'</td>'+
+        '<td>'+dash(d.data)+'</td>'+
+        '<td>'+dash(d.origem)+'</td>'+
+        '<td>'+esc(d.status)+'</td>'+
+        '<td><div class="dem-pct-wrap"><div class="dem-pct-bar"><div class="dem-pct-fill" style="width:'+pct+'%"></div></div><span class="dem-pct-txt">'+pctInt+'%</span></div></td>'+
+      '</tr>';
+    var etHtml = '';
+    for(var k=0;k<16;k++){
+      var val = etapas[k]!==undefined ? etapas[k] : '';
+      var u = _normET(val);
+      var cls = u==='CONCLUIDO' ? 'et-ok' : (u==='EM ANDAMENTO' ? 'et-mid' : 'et-no');
+      var done = u==='CONCLUIDO' ? ' done' : '';
+      etHtml += '<div class="dem-etapa'+done+'"><span class="et-dot '+cls+'"></span><span class="et-nome">'+esc(_NOMES[k])+'</span></div>';
+    }
+    html +=
+      '<tr class="dem-detail-row" id="dem-detail-'+i+'" style="display:none;">'+
+        '<td colspan="7"><div class="dem-detail">'+
+          '<div class="dem-detail-title">Execu\u00e7\u00e3o do Processo \u2014 '+pctInt+'% conclu\u00eddo</div>'+
+          '<div class="dem-etapas">'+etHtml+'</div>'+
+        '</div></td>'+
+      '</tr>';
+  });
+  tb.innerHTML = html;
   // Atualiza os gráficos sempre que chegam dados novos da planilha.
   setTimeout(gerarGraficosDemandasSituacao, 0);
 }
