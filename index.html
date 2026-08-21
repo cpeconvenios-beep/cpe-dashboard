@@ -93,11 +93,15 @@ body{font-family:'Segoe UI',Arial,sans-serif;background:#F0EDE0;color:#0A0A0A;fo
 .alerta-card .alerta-num.yellow{color:#e6a817;}
 .alerta-card .alerta-num.green{color:#3b6d11;}
 .alerta-card .alerta-sub{font-size:11px;color:#888;margin-top:4px;}
-#demandas-cards{grid-template-columns:repeat(5,1fr);gap:10px;}
-#demandas-cards .alerta-card{padding:10px 12px;}
-#demandas-cards .alerta-card .alerta-num{font-size:26px;}
-#demandas-cards .alerta-card .alerta-label{font-size:9px;}
-@media(max-width:900px){#demandas-cards{grid-template-columns:repeat(2,1fr);}}
+#demandas-cards{grid-template-columns:repeat(8,1fr);gap:8px;}
+#demandas-cards .alerta-card{padding:8px 8px;min-height:74px;display:flex;flex-direction:column;justify-content:space-between;}
+#demandas-cards .alerta-card .alerta-num{font-size:22px;line-height:1;}
+#demandas-cards .alerta-card .alerta-label{font-size:8px;line-height:1.15;}
+#demandas-cards .alerta-card .alerta-sub{font-size:8px;margin-top:2px;}
+#demandas-cards .et-idx{display:inline-block;min-width:15px;height:15px;line-height:15px;text-align:center;border-radius:50%;background:#3B6D11;color:#fff;font-size:8px;font-weight:700;margin-right:3px;}
+#demandas-cards .alerta-card.et-zero .et-idx{background:#9A8A5A;}
+@media(max-width:1100px){#demandas-cards{grid-template-columns:repeat(4,1fr);}}
+@media(max-width:640px){#demandas-cards{grid-template-columns:repeat(2,1fr);}}
 .dem-row{cursor:pointer;}
 .dem-row:hover{background:#FBF9F2;}
 .dem-caret{display:inline-block;width:14px;color:#9A8A5A;transition:transform .15s;font-size:11px;}
@@ -109,6 +113,15 @@ body{font-family:'Segoe UI',Arial,sans-serif;background:#F0EDE0;color:#0A0A0A;fo
 .dem-detail-row>td{background:#FBF9F2;padding:0;border-top:none;}
 .dem-detail{padding:14px 18px;}
 .dem-detail-title{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:#6B5B45;margin-bottom:10px;}
+.grau-badge{display:inline-block;padding:3px 10px;border-radius:11px;font-size:10px;font-weight:700;line-height:1.3;white-space:nowrap;border:1px solid rgba(0,0,0,.08);}
+.grau-1{background:#F8D0D0;color:#9B1C1C;}
+.grau-2{background:#FCEFC7;color:#8A6D0B;}
+.grau-3{background:#D6EBCF;color:#2F6B1E;}
+.grau-0{background:#EDE8DA;color:#6B5B45;}
+.dem-meta{display:flex;flex-wrap:wrap;gap:18px;align-items:center;margin-bottom:14px;padding-bottom:12px;border-bottom:1px solid #E7E0CE;}
+.dem-meta-item{display:flex;flex-direction:column;gap:3px;}
+.dem-meta-lbl{font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:#9A8A5A;}
+.dem-meta-val{font-size:13px;font-weight:700;color:#0A0A0A;}
 .dem-etapas{display:grid;grid-template-columns:repeat(4,1fr);gap:6px 14px;}
 .dem-etapa{display:flex;align-items:center;gap:6px;font-size:11px;}
 .dem-etapa .et-dot{width:9px;height:9px;border-radius:50%;flex-shrink:0;}
@@ -454,7 +467,7 @@ body{font-family:'Segoe UI',Arial,sans-serif;background:#F0EDE0;color:#0A0A0A;fo
   <div class="charts-row">
     <div class="chart-card">
       <div class="chart-title">Demandas por Situação</div>
-      <div class="chart-wrap"><canvas id="chartDemandasSituacao"></canvas></div>
+      <div class="chart-wrap" style="height:420px"><canvas id="chartDemandasSituacao"></canvas></div>
       <div class="chart-legend">
         <span><span class="leg-sq" style="background:#D4Af37"></span>Aguardando</span>
         <span><span class="leg-sq" style="background:#E87722"></span>Em Tratativa</span>
@@ -1637,7 +1650,7 @@ function renderizarDemandas(){
   var lista = ((DADOS && Array.isArray(DADOS.demandas)) ? DADOS.demandas : []).filter(function(d){ return d && String(d.material||'').trim().toUpperCase() !== 'MATERIAL / DEMANDA' && String(d.status||'').trim().toUpperCase() !== 'STATUS ATUAL'; });
   var tb = document.getElementById('demandas-tbody');
   var tot = document.getElementById('demandas-total');
-  if(tot) tot.textContent = lista.length + ' demanda(s)'; var _cardsEl = document.getElementById('demandas-cards'); if(_cardsEl){ var _norm=function(s){return (s==null?'':String(s)).toUpperCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'');}; var _cls=function(s){var u=_norm(s); if(/CONFECCIONAD|ADITIVAD|PREGAO|COTEP|CONTRATA/.test(u))return 'contratacao'; if(/ORCAMENTO|RECURSO/.test(u))return 'orcamento'; if(/AGUARDA.*DEMANDA|DEMANDA DA UNIDADE/.test(u))return 'demanda'; if(/ENVIAD|MEMORANDO|AGUARDAND|TRAMIT/.test(u))return 'tramite'; return 'outras';}; var _b={demanda:0,orcamento:0,tramite:0,contratacao:0,outras:0}; lista.forEach(function(d){_b[_cls(d.status)]++;}); var _defs=[['demanda','Aguardando Demanda','dot-black','#0A0A0A'],['orcamento','Aguardando Orçamento','dot-yellow','#E6A817'],['tramite','Em Trâmite','dot-orange','#E87722'],['contratacao','Em Contratação','dot-green','#3B6D11'],['outras','Outras Situações','dot-red','#C0392B']]; _cardsEl.classList.remove('loading'); _cardsEl.innerHTML = _defs.map(function(x){return '<div class="alerta-card"><div class="alerta-label"><span class="'+x[2]+'"></span> '+x[1]+'</div><div class="alerta-num" style="color:'+x[3]+'">'+_b[x[0]]+'</div><div class="alerta-sub">demanda(s)</div></div>';}).join(''); }
+  if(tot) tot.textContent = lista.length + ' demanda(s)'; var _cardsEl = document.getElementById('demandas-cards'); if(_cardsEl){ var _nrm=function(s){return (s==null?'':String(s)).toUpperCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').trim();}; var _NOMESC=['DOD','3 Orçamentos','Garantia Orçamentária','ETP','Termo de Referência','Edital / Aviso','Cadastro Solic. de Compra','Aprov. Solic. de Compra','Cadastro Pedido de Compra','Aprov. Pedido de Compra','Cadastro Proc. de Compra','Análise Jurídica','Aprov. Autoridade Comp.','Cadastro Proced. e Lotes','Publicação / Disponib.','Adjudicação / Homolog.']; var _ult=function(et){var last=-1; if(Array.isArray(et)){for(var k=0;k<16;k++){if(_nrm(et[k])==='CONCLUIDO')last=k;}} return last;}; var _cont=new Array(16).fill(0); var _naoIni=0; lista.forEach(function(d){var idx=_ult(d.etapas); if(idx<0)_naoIni++; else _cont[idx]++;}); _cardsEl.classList.remove('loading'); var _cards=[]; _cards.push('<div class="alerta-card et-zero"><div class="alerta-label"><span class="et-idx">0</span>Não iniciada</div><div class="alerta-num" style="color:#9A8A5A">'+_naoIni+'</div><div class="alerta-sub">demanda(s)</div></div>'); for(var k=0;k<16;k++){ _cards.push('<div class="alerta-card"><div class="alerta-label"><span class="et-idx">'+(k+1)+'</span>'+_NOMESC[k]+'</div><div class="alerta-num" style="color:#3B6D11">'+_cont[k]+'</div><div class="alerta-sub">demanda(s)</div></div>'); } _cardsEl.innerHTML=_cards.join(''); }
   if(!tb) return;
   if(!lista.length){ tb.innerHTML = '<tr><td colspan="6" style="text-align:center;color:#888;padding:20px;">Nenhuma demanda cadastrada.</td></tr>'; return; }
   var esc = function(s){ return (s==null?'':String(s)).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); };
@@ -1646,6 +1659,9 @@ function renderizarDemandas(){
   var _NOMES = ['DOD','3 Or\u00e7amentos','Garantia Or\u00e7ament\u00e1ria','ETP','Termo de Refer\u00eancia','Edital / Aviso','Cadastro Solicita\u00e7\u00e3o de Compra','Aprova\u00e7\u00e3o Solicita\u00e7\u00e3o de Compra','Cadastro Pedido de Compra','Aprova\u00e7\u00e3o Pedido de Compra','Cadastro Processo de Compra','An\u00e1lise Jur\u00eddica','Aprova\u00e7\u00e3o Autoridade Competente','Cadastro Procedimento e Lotes','Publica\u00e7\u00e3o / Disponibiliza\u00e7\u00e3o','Adjudica\u00e7\u00e3o / Homologa\u00e7\u00e3o'];
   var _pontos = function(u){ if(u==='CONCLUIDO')return 1; if(u==='EM ANDAMENTO')return 0.5; return 0; };
   var _pct = function(etapas){ if(!Array.isArray(etapas)||!etapas.length) return 0; var s=0; etapas.forEach(function(e){ s+=_pontos(_normET(e)); }); return Math.round(s/16*1000)/10; };
+  var _grauCls = function(g){ var u=_normET(g); if(u.indexOf('1')===0||u.indexOf('EXTREMAMENTE')>=0)return 'grau-1'; if(u.indexOf('2')===0||u.indexOf('NECESSARIO')>=0)return 'grau-2'; if(u.indexOf('3')===0||u.indexOf('NAO PRIORITARIO')>=0||u.indexOf('PRIORITARIO')>=0)return 'grau-3'; return 'grau-0'; };
+  var _grauBadge = function(g){ var t=(g==null?'':String(g)).trim(); if(!t) return '\u2014'; return '<span class="grau-badge '+_grauCls(t)+'">'+esc(t)+'</span>'; };
+  var _fmtValor = function(v){ if(v==null||v==='') return '\u2014'; var n=Number(String(v).replace(/[^0-9,.-]/g,'').replace(/\./g,'').replace(',','.')); if(!isFinite(n)||n===0) return (String(v).trim()||'\u2014'); return 'R$ '+n.toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2}); };
   var html = '';
   lista.forEach(function(d, i){
     var etapas = Array.isArray(d.etapas) ? d.etapas : [];
@@ -1659,8 +1675,8 @@ function renderizarDemandas(){
         '<td>'+dash(d.data)+'</td>'+
         '<td>'+dash(d.origem)+'</td>'+
         '<td>'+esc(d.status)+'</td>'+
-        '<td>'+dash(d.grauPrioridade)+'</td>'+
-        '<td>'+dash(d.prioridade)+'</td>'+
+        '<td>'+_grauBadge(d.grauPrioridade)+'</td>'+
+        '<td>'+_fmtValor(d.prioridade)+'</td>'+
         '<td><div class="dem-pct-wrap"><div class="dem-pct-bar"><div class="dem-pct-fill" style="width:'+pct+'%"></div></div><span class="dem-pct-txt">'+pctInt+'%</span></div></td>'+
       '</tr>';
     var etHtml = '';
@@ -1674,6 +1690,7 @@ function renderizarDemandas(){
     html +=
       '<tr class="dem-detail-row" id="dem-detail-'+i+'" style="display:none;">'+
         '<td colspan="9"><div class="dem-detail">'+
+          '<div class="dem-meta">'+'<div class="dem-meta-item"><span class="dem-meta-lbl">Grau de Prioridade</span><span class="dem-meta-val">'+_grauBadge(d.grauPrioridade)+'</span></div>'+'<div class="dem-meta-item"><span class="dem-meta-lbl">Valor Estimado</span><span class="dem-meta-val">'+_fmtValor(d.prioridade)+'</span></div>'+'</div>'+
           '<div class="dem-detail-title">Execu\u00e7\u00e3o do Processo \u2014 '+pctInt+'% conclu\u00eddo</div>'+
           '<div class="dem-etapas">'+etHtml+'</div>'+
         '</div></td>'+
@@ -1903,24 +1920,21 @@ function gerarGraficosDemandasSituacao() {
     return (s == null ? '' : String(s)).toUpperCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'');
   };
 
-  const grupos = { aguardando:0, tratativa:0, contratacao:0, outras:0 };
-  lista.forEach(function(d){
-    const s = normaliza(d.status);
-    if (/AGUARDA|DEMANDA DA UNIDADE|ORCAMENTO|RECURSO/.test(s)) grupos.aguardando++;
-    else if (/TRATATIVA|ENVIAD|MEMORANDO|TRAMIT/.test(s)) grupos.tratativa++;
-    else if (/CONFECCIONAD|ADITIVAD|PREGAO|COTEP|CONTRATA/.test(s)) grupos.contratacao++;
-    else grupos.outras++;
-  });
-
-  const labels = ['Aguardando','Em Tratativa','Em Contratação','Outras'];
-  const valores = [grupos.aguardando, grupos.tratativa, grupos.contratacao, grupos.outras];
+  var _NOMESG=['DOD','3 Orçamentos','Garantia Orçamentária','ETP','Termo de Referência','Edital / Aviso','Cadastro Solic. de Compra','Aprov. Solic. de Compra','Cadastro Pedido de Compra','Aprov. Pedido de Compra','Cadastro Proc. de Compra','Análise Jurídica','Aprov. Autoridade Comp.','Cadastro Proced. e Lotes','Publicação / Disponib.','Adjudicação / Homolog.'];
+  var _ultG=function(et){var last=-1; if(Array.isArray(et)){for(var k=0;k<16;k++){if(normaliza(et[k]).trim()==='CONCLUIDO')last=k;}} return last;};
+  var _contG=new Array(16).fill(0); var _naoIniG=0;
+  lista.forEach(function(d){ var idx=_ultG(d.etapas); if(idx<0)_naoIniG++; else _contG[idx]++; });
+  const labels = ['Não iniciada'].concat(_NOMESG);
+  const valores = [_naoIniG].concat(_contG);
+  var _cores=['#9A8A5A','#7BA05B','#6B9BD1','#D4Af37','#E6A817','#E87722','#C0623A','#B5651D','#A0522D','#8A6D3B','#6B8E23','#556B2F','#4682B4','#5F9EA0','#2E8B57','#3B6D11'];
+  const _bg = labels.map(function(l,i){ return _cores[i % _cores.length]; });
 
   const bar = document.getElementById('chartDemandasSituacao');
   if (bar) {
     destroyChart('chartDemandasSituacao');
     chartInstances['chartDemandasSituacao'] = new Chart(bar, {
       type:'bar',
-      data:{labels:labels,datasets:[{label:'Quantidade',data:valores,backgroundColor:['#D4Af37','#E87722','#9A8A5A','#6B5B45'],borderWidth:1,borderRadius:4}]},
+      data:{labels:labels,datasets:[{label:'Quantidade',data:valores,backgroundColor:_bg,borderWidth:1,borderRadius:4}]},
       options:{responsive:true,maintainAspectRatio:false,indexAxis:'y',plugins:{legend:{display:false}},scales:{x:{beginAtZero:true,ticks:{precision:0}},y:{grid:{display:false}}}}
     });
   }
@@ -1930,8 +1944,8 @@ function gerarGraficosDemandasSituacao() {
     destroyChart('chartDemandasPorcentagem');
     chartInstances['chartDemandasPorcentagem'] = new Chart(donut, {
       type:'doughnut',
-      data:{labels:labels,datasets:[{data:valores,backgroundColor:['#D4Af37','#E87722','#9A8A5A','#6B5B45'],borderColor:'#fff',borderWidth:2}]},
-      options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'bottom',labels:{font:{size:11},padding:12,color:'#555'}},tooltip:{callbacks:{label:function(ctx){
+      data:{labels:labels,datasets:[{data:valores,backgroundColor:_bg,borderColor:'#fff',borderWidth:2}]},
+      options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'bottom',labels:{font:{size:9},padding:6,boxWidth:10,color:'#555'}},tooltip:{callbacks:{label:function(ctx){
         const total = ctx.dataset.data.reduce((a,b)=>a+b,0);
         const valor = Number(ctx.parsed||0);
         const pct = total ? (valor/total*100).toFixed(1) : '0.0';
