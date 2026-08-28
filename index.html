@@ -189,6 +189,31 @@ body{font-family:'Segoe UI',Arial,sans-serif;background:#F0EDE0;color:#0A0A0A;fo
   .convenio-row,.charts-row,.alerta-row,.repasse-row,.saldo-cards,.kpi-row{grid-template-columns:1fr;}
   .top-bar-title h1{font-size:16px;}
 }
+
+/* ===== ABA DIÁRIAS ===== */
+#tab-content-diarias .di-filtros{display:grid;grid-template-columns:2fr 1fr 1fr 1fr 1fr auto;gap:10px;align-items:end;margin-bottom:16px;}
+#tab-content-diarias .di-campo{display:flex;flex-direction:column;gap:4px;}
+#tab-content-diarias .di-campo label{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:#9A8A5A;}
+#tab-content-diarias .di-campo input,#tab-content-diarias .di-campo select{padding:8px 10px;border:1px solid #E7E0CE;border-radius:8px;font-size:12px;background:#fff;color:#0A0A0A;}
+#tab-content-diarias .di-campo input:focus,#tab-content-diarias .di-campo select:focus{outline:none;border-color:#3B6D11;}
+#tab-content-diarias .di-limpar{padding:8px 14px;border:1px solid #E7E0CE;background:#FBF9F2;border-radius:8px;font-size:12px;font-weight:700;color:#6B5B45;cursor:pointer;white-space:nowrap;}
+#tab-content-diarias .di-limpar:hover{background:#F0EADB;}
+#tab-content-diarias .di-cards{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:18px;}
+#tab-content-diarias .di-card{background:#fff;border:1px solid #ECE5D4;border-radius:10px;padding:12px 14px;}
+#tab-content-diarias .di-card .di-card-lbl{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:#9A8A5A;margin-bottom:4px;}
+#tab-content-diarias .di-card .di-card-num{font-size:22px;font-weight:800;color:#0A0A0A;}
+#tab-content-diarias .di-tbl-wrap{overflow-x:auto;border:1px solid #ECE5D4;border-radius:10px;max-height:520px;overflow-y:auto;}
+#tab-content-diarias table.di-tbl{width:100%;border-collapse:collapse;font-size:11px;white-space:nowrap;}
+#tab-content-diarias table.di-tbl thead th{position:sticky;top:0;background:#3B4A22;color:#fff;padding:8px 10px;text-align:left;font-size:10px;text-transform:uppercase;letter-spacing:.3px;z-index:2;}
+#tab-content-diarias table.di-tbl tbody td{padding:7px 10px;border-bottom:1px solid #EFEADC;color:#3a3730;}
+#tab-content-diarias table.di-tbl tbody tr:nth-child(even){background:#FBF9F2;}
+#tab-content-diarias table.di-tbl tbody tr:hover{background:#F3EEDF;}
+#tab-content-diarias .di-charts{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:18px;}
+#tab-content-diarias .di-chart-card{background:#fff;border:1px solid #ECE5D4;border-radius:10px;padding:14px 16px;}
+#tab-content-diarias .di-chart-card.wide{grid-column:1 / -1;}
+#tab-content-diarias .di-chart-title{font-size:13px;font-weight:700;color:#0A0A0A;margin-bottom:10px;text-align:center;}
+#tab-content-diarias .di-chart-wrap{position:relative;height:260px;}
+@media(max-width:900px){#tab-content-diarias .di-filtros{grid-template-columns:1fr 1fr;}#tab-content-diarias .di-cards{grid-template-columns:1fr 1fr;}#tab-content-diarias .di-charts{grid-template-columns:1fr;}}
 </style>
 </head>
 <body>
@@ -213,6 +238,7 @@ body{font-family:'Segoe UI',Arial,sans-serif;background:#F0EDE0;color:#0A0A0A;fo
   <button class="tab-btn" onclick="showTab('sirconv')" id="tab-sirconv"><span class="tab-icon">🏘️</span> Convênios SIRCONV</button>
 
   <button class="tab-btn" onclick="showTab('demandas')" id="tab-demandas"><span class="tab-icon">🗂️</span> Controle de Demandas</button>
+  <button class="tab-btn" onclick="showTab('diarias')" id="tab-diarias"><span class="tab-icon">🚗</span> Diárias</button>
 </div>
 
 </div><!-- /sticky-header -->
@@ -519,6 +545,72 @@ body{font-family:'Segoe UI',Arial,sans-serif;background:#F0EDE0;color:#0A0A0A;fo
 </div>
 
 
+
+<div class="tab-content" id="tab-content-diarias">
+  <div class="table-card">
+    <div class="table-header-row">
+      <span class="tit">Diárias — Consulta Detalhada</span>
+      <span class="tot" id="diarias-total">0 registro(s)</span>
+    </div>
+    <div class="di-filtros">
+      <div class="di-campo">
+        <label>Buscar (qualquer campo)</label>
+        <input type="text" id="di-busca" placeholder="Digite nome, destino, motivo, protocolo..." oninput="renderizarDiarias()">
+      </div>
+      <div class="di-campo">
+        <label>Nome</label>
+        <input type="text" id="di-f-nome" placeholder="Nome" oninput="renderizarDiarias()">
+      </div>
+      <div class="di-campo">
+        <label>Posto/Grad</label>
+        <select id="di-f-posto" onchange="renderizarDiarias()"><option value="">Todos</option></select>
+      </div>
+      <div class="di-campo">
+        <label>Convênio</label>
+        <select id="di-f-convenio" onchange="renderizarDiarias()"><option value="">Todos</option></select>
+      </div>
+      <div class="di-campo">
+        <label>Unidade</label>
+        <select id="di-f-unidade" onchange="renderizarDiarias()"><option value="">Todas</option></select>
+      </div>
+      <button class="di-limpar" onclick="limparFiltrosDiarias()">Limpar</button>
+    </div>
+
+    <div class="di-cards">
+      <div class="di-card"><div class="di-card-lbl">Registros filtrados</div><div class="di-card-num" id="di-kpi-qtd">0</div></div>
+      <div class="di-card"><div class="di-card-lbl">Custo total (filtrado)</div><div class="di-card-num" id="di-kpi-custo">R$ 0,00</div></div>
+      <div class="di-card"><div class="di-card-lbl">Nº de diárias</div><div class="di-card-num" id="di-kpi-diarias">0</div></div>
+      <div class="di-card"><div class="di-card-lbl">Militares distintos</div><div class="di-card-num" id="di-kpi-militares">0</div></div>
+    </div>
+
+    <div class="di-charts">
+      <div class="di-chart-card wide">
+        <div class="di-chart-title">DIÁRIAS — CUSTO / MÊS 2026</div>
+        <div class="di-chart-wrap"><canvas id="chartDiariasMes"></canvas></div>
+      </div>
+      <div class="di-chart-card">
+        <div class="di-chart-title">CUSTO POR UNIDADE - 2026</div>
+        <div class="di-chart-wrap"><canvas id="chartDiariasUnidade"></canvas></div>
+      </div>
+      <div class="di-chart-card">
+        <div class="di-chart-title">CUSTO POR TIPO DE DILIGÊNCIA - 2026</div>
+        <div class="di-chart-wrap"><canvas id="chartDiariasTipo"></canvas></div>
+      </div>
+    </div>
+
+    <div class="di-tbl-wrap">
+      <table class="di-tbl">
+        <thead><tr>
+          <th>Nome</th><th>Posto/Grad</th><th>Nº Polícia</th><th>Unidade</th><th>Convênio</th>
+          <th>Tipo Diligência</th><th>Origem</th><th>Destino</th><th>Início</th><th>Término</th>
+          <th>Distância</th><th>Nº Diárias</th><th>Vlr Diária</th><th>Custo</th><th>Status</th>
+        </tr></thead>
+        <tbody id="diarias-tbody"><tr><td colspan="15" style="text-align:center;color:#9A8A5A;padding:20px;">Carregando...</td></tr></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
 <script>
 // ============================================================
 // URLs CSV DAS PLANILHAS PUBLICADAS
@@ -662,6 +754,7 @@ async function carregarDados() {
 
     // Demandas podem legitimamente vir vazias.
     DADOS.demandas = Array.isArray(dados.demandas) ? dados.demandas : [];
+    DADOS.diarias = Array.isArray(dados.diarias) ? dados.diarias : [];
     // SIRCONV e liquidação também podem vir vazios.
     DADOS.sirconv = Array.isArray(dados.sirconv) ? dados.sirconv : [];
     DADOS.liquidacao = Array.isArray(dados.liquidacao) ? dados.liquidacao : [];
@@ -673,6 +766,7 @@ async function carregarDados() {
     renderizarSirconv();
     renderizarDemandas();
     if (typeof gerarGraficosDemandasSituacao === 'function') gerarGraficosDemandasSituacao();
+    if (typeof renderizarDiarias === 'function') renderizarDiarias();
 
     const parcial = dados.ok === false;
     if (status) {
@@ -1699,6 +1793,110 @@ function abrirModalSituacao(idx){
 }
 function fecharModalSituacao(){ var ov=document.getElementById('sit-modal-overlay'); if(ov) ov.classList.remove('open'); }
 document.addEventListener('keydown',function(e){ if(e.key==='Escape') fecharModalSituacao(); });
+
+// ===================== ABA DIÁRIAS =====================
+var _diPop = false; // popular selects so uma vez
+function _diNum(v){ if(typeof v==='number') return v; var t=(v==null?'':String(v)).replace(/[^0-9,.-]/g,'').replace(/\./g,'').replace(',','.'); var n=parseFloat(t); return isFinite(n)?n:0; }
+function _diMoeda(n){ return 'R$ '+(n||0).toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2}); }
+function _diEsc(s){ return (s==null?'':String(s)).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+function _diMes(inicio){ // "dd/mm/yyyy hh:mm" -> mes (1-12) ou 0
+  var m=String(inicio||'').match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})/); return m? parseInt(m[2],10):0;
+}
+function limparFiltrosDiarias(){
+  var ids=['di-busca','di-f-nome','di-f-posto','di-f-convenio','di-f-unidade'];
+  ids.forEach(function(id){ var el=document.getElementById(id); if(el) el.value=''; });
+  renderizarDiarias();
+}
+function _diPopularSelects(dados){
+  if(_diPop) return;
+  function uniq(campo){ var s={}; dados.forEach(function(d){ var v=(d[campo]||'').toString().trim(); if(v) s[v]=1; }); return Object.keys(s).sort(); }
+  function fill(id,vals){ var sel=document.getElementById(id); if(!sel) return; vals.forEach(function(v){ var o=document.createElement('option'); o.value=v; o.textContent=v; sel.appendChild(o); }); }
+  fill('di-f-posto', uniq('postoGrad'));
+  fill('di-f-convenio', uniq('convenio'));
+  fill('di-f-unidade', uniq('unidade'));
+  _diPop=true;
+}
+function renderizarDiarias(){
+  var _todos = Array.isArray(DADOS.diarias) ? DADOS.diarias : [];
+  // Ignora linhas-lixo (rodapé/total) sem data de início válida
+  var dados = _todos.filter(function(d){ return /^\d{1,2}\/\d{1,2}\/\d{4}/.test(String(d.inicio||'')); });
+  _diPopularSelects(dados);
+  var busca=(document.getElementById('di-busca')||{}).value||'';
+  var fNome=(document.getElementById('di-f-nome')||{}).value||'';
+  var fPosto=(document.getElementById('di-f-posto')||{}).value||'';
+  var fConv=(document.getElementById('di-f-convenio')||{}).value||'';
+  var fUni=(document.getElementById('di-f-unidade')||{}).value||'';
+  var nb=busca.toUpperCase().trim(), nn=fNome.toUpperCase().trim();
+  var filt = dados.filter(function(d){
+    if(fPosto && (d.postoGrad||'').trim()!==fPosto) return false;
+    if(fConv && (d.convenio||'').trim()!==fConv) return false;
+    if(fUni && (d.unidade||'').trim()!==fUni) return false;
+    if(nn && (d.nome||'').toUpperCase().indexOf(nn)<0) return false;
+    if(nb){
+      var blob=[d.nome,d.postoGrad,d.numPolicia,d.unidade,d.convenio,d.tipoDilig,d.origem,d.destino,d.status,d.inicio,d.termino].join(' ').toUpperCase();
+      if(blob.indexOf(nb)<0) return false;
+    }
+    return true;
+  });
+  // KPIs
+  var custo=0, diarias=0, nomes={};
+  filt.forEach(function(d){ custo+=_diNum(d.custo); diarias+=_diNum(d.numDiarias); if(d.nome) nomes[d.nome.trim()]=1; });
+  var setT=function(id,val){ var e=document.getElementById(id); if(e) e.textContent=val; };
+  setT('diarias-total', filt.length+' registro(s)');
+  setT('di-kpi-qtd', filt.length.toLocaleString('pt-BR'));
+  setT('di-kpi-custo', _diMoeda(custo));
+  setT('di-kpi-diarias', diarias.toLocaleString('pt-BR',{maximumFractionDigits:1}));
+  setT('di-kpi-militares', Object.keys(nomes).length.toLocaleString('pt-BR'));
+  // tabela (limita a 500 linhas p/ performance)
+  var tb=document.getElementById('diarias-tbody');
+  if(tb){
+    if(!filt.length){ tb.innerHTML='<tr><td colspan="15" style="text-align:center;color:#9A8A5A;padding:20px;">Nenhum registro encontrado.</td></tr>'; }
+    else {
+      var lim=filt.slice(0,500);
+      tb.innerHTML=lim.map(function(d){
+        return '<tr>'+
+          '<td>'+_diEsc(d.nome)+'</td>'+'<td>'+_diEsc(d.postoGrad)+'</td>'+'<td>'+_diEsc(d.numPolicia)+'</td>'+
+          '<td>'+_diEsc(d.unidade)+'</td>'+'<td>'+_diEsc(d.convenio)+'</td>'+'<td>'+_diEsc(d.tipoDilig)+'</td>'+
+          '<td>'+_diEsc(d.origem)+'</td>'+'<td>'+_diEsc(d.destino)+'</td>'+'<td>'+_diEsc(d.inicio)+'</td>'+
+          '<td>'+_diEsc(d.termino)+'</td>'+'<td>'+_diEsc(d.distancia)+'</td>'+'<td>'+_diEsc(d.numDiarias)+'</td>'+
+          '<td>'+_diMoeda(_diNum(d.vlrDiaria))+'</td>'+'<td>'+_diMoeda(_diNum(d.custo))+'</td>'+'<td>'+_diEsc(d.status)+'</td>'+
+        '</tr>';
+      }).join('') + (filt.length>500 ? '<tr><td colspan="15" style="text-align:center;color:#9A8A5A;padding:10px;">Mostrando 500 de '+filt.length+' registros. Refine os filtros.</td></tr>' : '');
+    }
+  }
+  _diGraficos(filt);
+}
+function _diGraficos(filt){
+  if(typeof Chart==='undefined') return;
+  var MESES=['jan.','fev.','mar.','abr.','mai.','jun.','jul.','ago.','set.','out.','nov.','dez.'];
+  // custo por mes
+  var porMes=new Array(12).fill(0);
+  filt.forEach(function(d){ var m=_diMes(d.inicio); if(m>=1&&m<=12) porMes[m-1]+=_diNum(d.custo); });
+  // ate qual mes ha dados
+  var maxMes=0; for(var i=11;i>=0;i--){ if(porMes[i]>0){ maxMes=i+1; break; } }
+  if(maxMes===0) maxMes=7;
+  var labelsMes=MESES.slice(0,maxMes), dadosMes=porMes.slice(0,maxMes);
+  // custo por unidade
+  var uni={}; filt.forEach(function(d){ var u=(d.unidade||'—').trim()||'—'; uni[u]=(uni[u]||0)+_diNum(d.custo); });
+  var uniLabels=Object.keys(uni).sort(function(a,b){return uni[b]-uni[a];}); var uniVals=uniLabels.map(function(k){return uni[k];});
+  // custo por tipo
+  var tipo={}; filt.forEach(function(d){ var t=(d.tipoDilig||'—').trim()||'—'; tipo[t]=(tipo[t]||0)+_diNum(d.custo); });
+  var tipoLabels=Object.keys(tipo).sort(function(a,b){return tipo[b]-tipo[a];}); var tipoVals=tipoLabels.map(function(k){return tipo[k];});
+  var CORES=['#D4AF37','#3B6D11','#6B9BD1','#8E7CC3','#E87722','#C0392B','#2E8B57','#B5651D'];
+  var fmtR=function(v){ return 'R$ '+Number(v).toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2}); };
+  // barras mes
+  destroyChart('chartDiariasMes');
+  var cMes=document.getElementById('chartDiariasMes');
+  if(cMes) chartInstances['chartDiariasMes']=new Chart(cMes,{type:'bar',data:{labels:labelsMes,datasets:[{label:'Custo',data:dadosMes,backgroundColor:'#4472C4',borderRadius:3}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:function(c){return fmtR(c.parsed.y);}}}},scales:{y:{ticks:{callback:function(v){return (v/1000)+'k';}}}}}});
+  // pizza unidade
+  destroyChart('chartDiariasUnidade');
+  var cUni=document.getElementById('chartDiariasUnidade');
+  if(cUni) chartInstances['chartDiariasUnidade']=new Chart(cUni,{type:'pie',data:{labels:uniLabels,datasets:[{data:uniVals,backgroundColor:CORES,borderColor:'#fff',borderWidth:2}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'right',labels:{font:{size:10},boxWidth:12}},tooltip:{callbacks:{label:function(c){var t=c.dataset.data.reduce(function(a,b){return a+b;},0);var p=t?(c.parsed/t*100).toFixed(1):0;return c.label+': '+fmtR(c.parsed)+' ('+p+'%)';}}}}}});
+  // pizza tipo
+  destroyChart('chartDiariasTipo');
+  var cTipo=document.getElementById('chartDiariasTipo');
+  if(cTipo) chartInstances['chartDiariasTipo']=new Chart(cTipo,{type:'pie',data:{labels:tipoLabels,datasets:[{data:tipoVals,backgroundColor:['#C0392B','#4472C4','#D4AF37','#3B6D11'],borderColor:'#fff',borderWidth:2}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'right',labels:{font:{size:10},boxWidth:12}},tooltip:{callbacks:{label:function(c){var t=c.dataset.data.reduce(function(a,b){return a+b;},0);var p=t?(c.parsed/t*100).toFixed(1):0;return c.label+': '+fmtR(c.parsed)+' ('+p+'%)';}}}}}});
+}
 function renderizarDemandas(){
   var lista = ((DADOS && Array.isArray(DADOS.demandas)) ? DADOS.demandas : []).filter(function(d){ return d && String(d.material||'').trim().toUpperCase() !== 'MATERIAL / DEMANDA' && String(d.status||'').trim().toUpperCase() !== 'STATUS ATUAL'; });
   var tb = document.getElementById('demandas-tbody');
