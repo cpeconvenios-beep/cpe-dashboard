@@ -202,6 +202,18 @@ body{font-family:'Segoe UI',Arial,sans-serif;background:#F0EDE0;color:#0A0A0A;fo
 #tab-content-diarias .di-card{background:#fff;border:1px solid #ECE5D4;border-radius:10px;padding:12px 14px;}
 #tab-content-diarias .di-card .di-card-lbl{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:#9A8A5A;margin-bottom:4px;}
 #tab-content-diarias .di-card .di-card-num{font-size:22px;font-weight:800;color:#0A0A0A;}
+#tab-content-diarias .di-card-click{cursor:pointer;border-color:#3B6D11;background:linear-gradient(180deg,#FBFCF7,#F4F7EC);transition:transform .12s,box-shadow .12s;}
+#tab-content-diarias .di-card-click:hover{transform:translateY(-2px);box-shadow:0 4px 14px rgba(59,109,17,.18);}
+#tab-content-diarias .di-card-click .di-card-num{color:#2F6B1E;}
+#tab-content-diarias .di-card-hint{font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.4px;color:#3B6D11;margin-top:3px;}
+.fonte-item{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:11px 0;border-bottom:1px solid #EFEADC;}
+.fonte-item:last-child{border-bottom:none;}
+.fonte-nome{font-size:13px;font-weight:700;color:#0A0A0A;}
+.fonte-sub{font-size:10px;color:#9A8A5A;margin-top:2px;}
+.fonte-val{font-size:14px;font-weight:800;color:#2F6B1E;white-space:nowrap;}
+.fonte-bar{height:6px;background:#EDE8DA;border-radius:4px;overflow:hidden;margin-top:5px;}
+.fonte-bar-fill{height:100%;background:#3B6D11;border-radius:4px;}
+.fonte-total-row{display:flex;justify-content:space-between;padding:12px 0 2px;margin-top:6px;border-top:2px solid #E7E0CE;font-weight:800;font-size:14px;color:#0A0A0A;}
 #tab-content-diarias .di-tbl-wrap{overflow-x:auto;border:1px solid #ECE5D4;border-radius:10px;max-height:520px;overflow-y:auto;}
 #tab-content-diarias table.di-tbl{width:100%;border-collapse:collapse;font-size:11px;white-space:nowrap;}
 #tab-content-diarias table.di-tbl thead th{position:sticky;top:0;background:#3B4A22;color:#fff;padding:8px 10px;text-align:left;font-size:10px;text-transform:uppercase;letter-spacing:.3px;z-index:2;}
@@ -578,7 +590,7 @@ body{font-family:'Segoe UI',Arial,sans-serif;background:#F0EDE0;color:#0A0A0A;fo
 
     <div class="di-cards">
       <div class="di-card"><div class="di-card-lbl">Registros filtrados</div><div class="di-card-num" id="di-kpi-qtd">0</div></div>
-      <div class="di-card"><div class="di-card-lbl">Custo total (filtrado)</div><div class="di-card-num" id="di-kpi-custo">R$ 0,00</div></div>
+      <div class="di-card di-card-click" onclick="abrirModalFonte()" title="Clique para ver o detalhamento por fonte (convênio)"><div class="di-card-lbl">Custo total (filtrado) &nbsp;🔎</div><div class="di-card-num" id="di-kpi-custo">R$ 0,00</div><div class="di-card-hint">clique p/ ver por fonte</div></div>
       <div class="di-card"><div class="di-card-lbl">Nº de diárias</div><div class="di-card-num" id="di-kpi-diarias">0</div></div>
       <div class="di-card"><div class="di-card-lbl">Militares distintos</div><div class="di-card-num" id="di-kpi-militares">0</div></div>
     </div>
@@ -595,6 +607,14 @@ body{font-family:'Segoe UI',Arial,sans-serif;background:#F0EDE0;color:#0A0A0A;fo
       <div class="di-chart-card">
         <div class="di-chart-title">CUSTO POR TIPO DE DILIGÊNCIA - 2026</div>
         <div class="di-chart-wrap"><canvas id="chartDiariasTipo"></canvas></div>
+      </div>
+      <div class="di-chart-card wide">
+        <div class="di-chart-title">GASTO TOTAL POR POSTO/GRAD</div>
+        <div class="di-chart-wrap" style="height:300px"><canvas id="chartDiariasPostoTotal"></canvas></div>
+      </div>
+      <div class="di-chart-card wide">
+        <div class="di-chart-title">GASTO MÉDIO POR POSTO/GRAD (custo ÷ nº de registros)</div>
+        <div class="di-chart-wrap" style="height:300px"><canvas id="chartDiariasPostoMedia"></canvas></div>
       </div>
     </div>
 
@@ -1821,6 +1841,42 @@ function _diPopularSelects(dados){
   fill('di-f-unidade', uniq('unidade'));
   _diPop=true;
 }
+function abrirModalFonte(){
+  var filt = window._DI_FILT || [];
+  var porFonte = {};
+  var totCusto = 0, totDiarias = 0;
+  filt.forEach(function(d){
+    var f = (d.convenio||'').toString().trim() || '(sem convênio)';
+    if(!porFonte[f]) porFonte[f] = {custo:0, qtd:0, diarias:0};
+    porFonte[f].custo += _diNum(d.custo);
+    porFonte[f].qtd += 1;
+    porFonte[f].diarias += _diNum(d.numDiarias);
+    totCusto += _diNum(d.custo);
+    totDiarias += _diNum(d.numDiarias);
+  });
+  var fontes = Object.keys(porFonte).sort(function(a,b){ return porFonte[b].custo - porFonte[a].custo; });
+  var maxV = fontes.length ? porFonte[fontes[0]].custo : 0;
+  var body = '';
+  if(!fontes.length){
+    body = '<div class="sit-empty">Nenhum registro para detalhar.</div>';
+  } else {
+    body = fontes.map(function(f){
+      var o = porFonte[f];
+      var pct = totCusto ? (o.custo/totCusto*100) : 0;
+      var w = maxV ? (o.custo/maxV*100) : 0;
+      return '<div class="fonte-item"><div style="flex:1;min-width:0;">'+
+        '<div class="fonte-nome">'+_diEsc(f)+'</div>'+
+        '<div class="fonte-sub">'+o.qtd+' registro(s) · '+o.diarias.toLocaleString('pt-BR',{maximumFractionDigits:1})+' diária(s) · '+pct.toFixed(1)+'%</div>'+
+        '<div class="fonte-bar"><div class="fonte-bar-fill" style="width:'+w+'%"></div></div>'+
+      '</div><div class="fonte-val">'+_diMoeda(o.custo)+'</div></div>';
+    }).join('');
+    body += '<div class="fonte-total-row"><span>TOTAL</span><span>'+_diMoeda(totCusto)+'</span></div>';
+  }
+  document.getElementById('sit-modal-title-txt').textContent = 'Custo de Diárias por Fonte (Convênio)';
+  document.getElementById('sit-modal-count').textContent = fontes.length + ' fonte(s) · ' + filt.length + ' registro(s)';
+  document.getElementById('sit-modal-body').innerHTML = body;
+  document.getElementById('sit-modal-overlay').classList.add('open');
+}
 function renderizarDiarias(){
   var _todos = Array.isArray(DADOS.diarias) ? DADOS.diarias : [];
   // Ignora linhas-lixo (rodapé/total) sem data de início válida
@@ -1869,6 +1925,7 @@ function renderizarDiarias(){
       }).join('') + (filt.length>500 ? '<tr><td colspan="15" style="text-align:center;color:#9A8A5A;padding:10px;">Mostrando 500 de '+filt.length+' registros. Refine os filtros.</td></tr>' : '');
     }
   }
+  window._DI_FILT = filt;
   _diGraficos(filt);
 }
 function _diGraficos(filt){
@@ -1901,6 +1958,23 @@ function _diGraficos(filt){
   destroyChart('chartDiariasTipo');
   var cTipo=document.getElementById('chartDiariasTipo');
   if(cTipo) chartInstances['chartDiariasTipo']=new Chart(cTipo,{type:'pie',data:{labels:tipoLabels,datasets:[{data:tipoVals,backgroundColor:['#C0392B','#4472C4','#D4AF37','#3B6D11'],borderColor:'#fff',borderWidth:2}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'right',labels:{font:{size:10},boxWidth:12}},tooltip:{callbacks:{label:function(c){var t=c.dataset.data.reduce(function(a,b){return a+b;},0);var p=t?(c.parsed/t*100).toFixed(1):0;return c.label+': '+fmtR(c.parsed)+' ('+p+'%)';}}}}}});
+  // ===== gasto por posto/grad =====
+  var posto={}; filt.forEach(function(d){ var p=(d.postoGrad||'—').trim()||'—'; if(!posto[p])posto[p]={custo:0,qtd:0}; posto[p].custo+=_diNum(d.custo); posto[p].qtd+=1; });
+  var pTotArr=Object.keys(posto).map(function(k){return {nome:k,custo:posto[k].custo,qtd:posto[k].qtd,media:posto[k].qtd?posto[k].custo/posto[k].qtd:0};});
+  // TOTAL: ordena por custo desc
+  var pTot=pTotArr.slice().sort(function(a,b){return b.custo-a.custo;});
+  var pTotLabels=pTot.map(function(x){return x.nome;}); var pTotVals=pTot.map(function(x){return Math.round(x.custo*100)/100;});
+  // MEDIA: ordena por media desc
+  var pMed=pTotArr.slice().sort(function(a,b){return b.media-a.media;});
+  var pMedLabels=pMed.map(function(x){return x.nome;}); var pMedVals=pMed.map(function(x){return Math.round(x.media*100)/100;});
+  // grafico TOTAL (barras horizontais)
+  destroyChart('chartDiariasPostoTotal');
+  var cPT=document.getElementById('chartDiariasPostoTotal');
+  if(cPT) chartInstances['chartDiariasPostoTotal']=new Chart(cPT,{type:'bar',data:{labels:pTotLabels,datasets:[{label:'Gasto total',data:pTotVals,backgroundColor:'#3B6D11',borderRadius:3}]},options:{indexAxis:'y',responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:function(c){return fmtR(c.parsed.x);}}}},scales:{x:{ticks:{callback:function(v){return (v/1000)+'k';}}}}}});
+  // grafico MEDIA (barras horizontais)
+  destroyChart('chartDiariasPostoMedia');
+  var cPM=document.getElementById('chartDiariasPostoMedia');
+  if(cPM) chartInstances['chartDiariasPostoMedia']=new Chart(cPM,{type:'bar',data:{labels:pMedLabels,datasets:[{label:'Gasto médio',data:pMedVals,backgroundColor:'#D4AF37',borderRadius:3}]},options:{indexAxis:'y',responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:function(c){return fmtR(c.parsed.x)+' / registro';}}}},scales:{x:{ticks:{callback:function(v){return (v/1000)+'k';}}}}}});
 }
 function renderizarDemandas(){
   var lista = ((DADOS && Array.isArray(DADOS.demandas)) ? DADOS.demandas : []).filter(function(d){ return d && String(d.material||'').trim().toUpperCase() !== 'MATERIAL / DEMANDA' && String(d.status||'').trim().toUpperCase() !== 'STATUS ATUAL'; });
