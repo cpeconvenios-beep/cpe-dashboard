@@ -1949,7 +1949,7 @@ function _diGraficos(filt){
   // barras mes
   destroyChart('chartDiariasMes');
   var cMes=document.getElementById('chartDiariasMes');
-  if(cMes) chartInstances['chartDiariasMes']=new Chart(cMes,{type:'bar',data:{labels:labelsMes,datasets:[{label:'Custo',data:dadosMes,backgroundColor:'#9A8A5A',borderRadius:3}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:function(c){return fmtR(c.parsed.y);}}}},scales:{y:{ticks:{callback:function(v){return (v/1000)+'k';}}}}}});
+  if(cMes) chartInstances['chartDiariasMes']=new Chart(cMes,{type:'bar',data:{labels:labelsMes,datasets:[{label:'Custo',data:dadosMes,backgroundColor:dadosMes.map(function(_,i){return i%2===0?'#9A8A5A':'#0A0A0A';}),borderRadius:3}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:function(c){return fmtR(c.parsed.y);}}}},scales:{y:{ticks:{callback:function(v){return (v/1000)+'k';}}}}}});
   // pizza unidade
   destroyChart('chartDiariasUnidade');
   var cUni=document.getElementById('chartDiariasUnidade');
