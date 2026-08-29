@@ -1944,20 +1944,20 @@ function _diGraficos(filt){
   // custo por tipo
   var tipo={}; filt.forEach(function(d){ var t=(d.tipoDilig||'—').trim()||'—'; tipo[t]=(tipo[t]||0)+_diNum(d.custo); });
   var tipoLabels=Object.keys(tipo).sort(function(a,b){return tipo[b]-tipo[a];}); var tipoVals=tipoLabels.map(function(k){return tipo[k];});
-  var CORES=['#D4AF37','#3B6D11','#6B9BD1','#8E7CC3','#E87722','#C0392B','#2E8B57','#B5651D'];
+  var CORES=['#9A8A5A','#BBA96A','#0A0A0A','#D4AF37','#6B5B45','#E7E0CE','#3B6D11','#C0392B'];
   var fmtR=function(v){ return 'R$ '+Number(v).toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2}); };
   // barras mes
   destroyChart('chartDiariasMes');
   var cMes=document.getElementById('chartDiariasMes');
-  if(cMes) chartInstances['chartDiariasMes']=new Chart(cMes,{type:'bar',data:{labels:labelsMes,datasets:[{label:'Custo',data:dadosMes,backgroundColor:'#4472C4',borderRadius:3}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:function(c){return fmtR(c.parsed.y);}}}},scales:{y:{ticks:{callback:function(v){return (v/1000)+'k';}}}}}});
+  if(cMes) chartInstances['chartDiariasMes']=new Chart(cMes,{type:'bar',data:{labels:labelsMes,datasets:[{label:'Custo',data:dadosMes,backgroundColor:'#9A8A5A',borderRadius:3}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:function(c){return fmtR(c.parsed.y);}}}},scales:{y:{ticks:{callback:function(v){return (v/1000)+'k';}}}}}});
   // pizza unidade
   destroyChart('chartDiariasUnidade');
   var cUni=document.getElementById('chartDiariasUnidade');
-  if(cUni) chartInstances['chartDiariasUnidade']=new Chart(cUni,{type:'pie',data:{labels:uniLabels,datasets:[{data:uniVals,backgroundColor:CORES,borderColor:'#fff',borderWidth:2}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'right',labels:{font:{size:10},boxWidth:12}},tooltip:{callbacks:{label:function(c){var t=c.dataset.data.reduce(function(a,b){return a+b;},0);var p=t?(c.parsed/t*100).toFixed(1):0;return c.label+': '+fmtR(c.parsed)+' ('+p+'%)';}}}}}});
+  if(cUni) chartInstances['chartDiariasUnidade']=new Chart(cUni,{type:'pie',data:{labels:uniLabels,datasets:[{data:uniVals,backgroundColor:['#9A8A5A','#BBA96A','#0A0A0A','#D4AF37','#6B5B45','#E7E0CE','#3B6D11','#C0392B'],borderColor:'#fff',borderWidth:2}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'right',labels:{font:{size:10},boxWidth:12}},tooltip:{callbacks:{label:function(c){var t=c.dataset.data.reduce(function(a,b){return a+b;},0);var p=t?(c.parsed/t*100).toFixed(1):0;return c.label+': '+fmtR(c.parsed)+' ('+p+'%)';}}}}}});
   // pizza tipo
   destroyChart('chartDiariasTipo');
   var cTipo=document.getElementById('chartDiariasTipo');
-  if(cTipo) chartInstances['chartDiariasTipo']=new Chart(cTipo,{type:'pie',data:{labels:tipoLabels,datasets:[{data:tipoVals,backgroundColor:['#C0392B','#4472C4','#D4AF37','#3B6D11'],borderColor:'#fff',borderWidth:2}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'right',labels:{font:{size:10},boxWidth:12}},tooltip:{callbacks:{label:function(c){var t=c.dataset.data.reduce(function(a,b){return a+b;},0);var p=t?(c.parsed/t*100).toFixed(1):0;return c.label+': '+fmtR(c.parsed)+' ('+p+'%)';}}}}}});
+  if(cTipo) chartInstances['chartDiariasTipo']=new Chart(cTipo,{type:'pie',data:{labels:tipoLabels,datasets:[{data:tipoVals,backgroundColor:['#9A8A5A','#0A0A0A','#D4AF37','#BBA96A'],borderColor:'#fff',borderWidth:2}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'right',labels:{font:{size:10},boxWidth:12}},tooltip:{callbacks:{label:function(c){var t=c.dataset.data.reduce(function(a,b){return a+b;},0);var p=t?(c.parsed/t*100).toFixed(1):0;return c.label+': '+fmtR(c.parsed)+' ('+p+'%)';}}}}}});
   // ===== gasto por posto/grad =====
   var posto={}; filt.forEach(function(d){ var p=(d.postoGrad||'—').trim()||'—'; if(!posto[p])posto[p]={custo:0,qtd:0}; posto[p].custo+=_diNum(d.custo); posto[p].qtd+=1; });
   var pTotArr=Object.keys(posto).map(function(k){return {nome:k,custo:posto[k].custo,qtd:posto[k].qtd,media:posto[k].qtd?posto[k].custo/posto[k].qtd:0};});
@@ -1970,11 +1970,11 @@ function _diGraficos(filt){
   // grafico TOTAL (barras horizontais)
   destroyChart('chartDiariasPostoTotal');
   var cPT=document.getElementById('chartDiariasPostoTotal');
-  if(cPT) chartInstances['chartDiariasPostoTotal']=new Chart(cPT,{type:'bar',data:{labels:pTotLabels,datasets:[{label:'Gasto total',data:pTotVals,backgroundColor:'#3B6D11',borderRadius:3}]},options:{indexAxis:'y',responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:function(c){return fmtR(c.parsed.x);}}}},scales:{x:{ticks:{callback:function(v){return (v/1000)+'k';}}}}}});
+  if(cPT) chartInstances['chartDiariasPostoTotal']=new Chart(cPT,{type:'bar',data:{labels:pTotLabels,datasets:[{label:'Gasto total',data:pTotVals,backgroundColor:'#9A8A5A',borderRadius:3}]},options:{indexAxis:'y',responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:function(c){return fmtR(c.parsed.x);}}}},scales:{x:{ticks:{callback:function(v){return (v/1000)+'k';}}}}}});
   // grafico MEDIA (barras horizontais)
   destroyChart('chartDiariasPostoMedia');
   var cPM=document.getElementById('chartDiariasPostoMedia');
-  if(cPM) chartInstances['chartDiariasPostoMedia']=new Chart(cPM,{type:'bar',data:{labels:pMedLabels,datasets:[{label:'Gasto médio',data:pMedVals,backgroundColor:'#D4AF37',borderRadius:3}]},options:{indexAxis:'y',responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:function(c){return fmtR(c.parsed.x)+' / registro';}}}},scales:{x:{ticks:{callback:function(v){return (v/1000)+'k';}}}}}});
+  if(cPM) chartInstances['chartDiariasPostoMedia']=new Chart(cPM,{type:'bar',data:{labels:pMedLabels,datasets:[{label:'Gasto médio',data:pMedVals,backgroundColor:'#BBA96A',borderRadius:3}]},options:{indexAxis:'y',responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:function(c){return fmtR(c.parsed.x)+' / registro';}}}},scales:{x:{ticks:{callback:function(v){return (v/1000)+'k';}}}}}});
 }
 function renderizarDemandas(){
   var lista = ((DADOS && Array.isArray(DADOS.demandas)) ? DADOS.demandas : []).filter(function(d){ return d && String(d.material||'').trim().toUpperCase() !== 'MATERIAL / DEMANDA' && String(d.status||'').trim().toUpperCase() !== 'STATUS ATUAL'; });
