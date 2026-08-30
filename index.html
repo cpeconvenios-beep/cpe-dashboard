@@ -63,6 +63,10 @@ body{font-family:'Segoe UI',Arial,sans-serif;background:#F0EDE0;color:#0A0A0A;fo
 .convenio-card .convenio-value{font-size:22px;font-weight:700;color:#0A0A0A;margin-bottom:8px;}
 .convenio-card .detail-line{font-size:12px;color:#666;margin-bottom:3px;}
 .convenio-card .detail-line span{font-weight:600;}
+.convenio-card .elem-sec{margin-top:8px;padding-top:8px;border-top:1px dashed #E7E0CE;}
+.convenio-card .elem-sec-tit{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.4px;color:#9A8A5A;margin-bottom:4px;}
+.convenio-card .elem-line{font-size:11px;color:#666;margin-bottom:2px;display:flex;justify-content:space-between;gap:10px;}
+.convenio-card .elem-line span{font-weight:700;color:#0A0A0A;}
 .convenio-card .saldo-label{font-weight:700;font-size:16px;}
 .convenio-card .saldo-positivo{color:#3b6d11;font-weight:700;font-size:24px;}
 .convenio-card .saldo-zero{color:#a32d2d;font-weight:700;font-size:24px;}
@@ -441,7 +445,7 @@ body{font-family:'Segoe UI',Arial,sans-serif;background:#F0EDE0;color:#0A0A0A;fo
       <span class="tit" id="execucao-titulo">Programado × Empenhado × Executado × Saldo</span>
       <span class="tot" id="total-execucao-label"></span>
     </div>
-    <div style="overflow-x:auto;"><table class="data-table"><thead><tr><th>Elemento</th><th>Programado</th><th>Empenhado</th><th>Executado (pago)</th><th>Saldo a Empenhar</th></tr></thead><tbody id="tbody-execucao"></tbody></table></div>
+    <div style="overflow-x:auto;"><table class="data-table"><thead><tr><th>Elemento</th><th>Programado</th><th>Empenhado</th><th>Executado (pago)</th><th>Saldo a Empenhar</th><th>Saldo Disponível</th></tr></thead><tbody id="tbody-execucao"></tbody></table></div>
   </div>
   <hr class="section-divider"/>
   <div class="section-header"><span class="section-num">P4</span><h2>Itens da Programação</h2></div>
@@ -1125,6 +1129,15 @@ function renderizarVisaoGeral() {
       ${retencaoHtml}
       <div class="detail-line">Recebido: <span>${BRL(fd.recebido||0)}</span> (${pct}%)</div>
       <div class="detail-line">A Receber (efetivo): <span style="color:#0A0A0A;font-weight:700;">${BRL(fd.aReceberProg!=null ? fd.aReceberProg : (liquidoCPE - (fd.recebido||0)))}</span></div>
+      ${(function(){
+        var el = fd.elementos || {};
+        var chaves = Object.keys(el).filter(function(k){ return (el[k]||0) > 0; });
+        if(!chaves.length) return '';
+        var linhas = chaves.map(function(k){
+          return '<div class="elem-line">'+elemLabel(k)+' <span>'+BRL(el[k])+'</span></div>';
+        }).join('');
+        return '<div class="elem-sec"><div class="elem-sec-tit">Saldo por Elemento</div>'+linhas+'</div>';
+      })()}
       <div class="detail-line"><span class="saldo-label">Saldo atual:</span> <span class="${saldoClass}">${BRL(saldo)}</span></div>
       <div class="tipo-tag">${tipos[i]}</div>
     </div>`;
@@ -1644,6 +1657,17 @@ function renderizarExecucaoElemento(fonteSel, programadoPorElem, fonteRaw) {
     exePorElem[e] = (exePorElem[e]||0) + (l.executado||0);
   });
 
+  // Saldo Disponível por elemento (vem de DADOS.fontes[fonte].elementos), respeitando o filtro de fonte
+  const dispPorElem = {};
+  const fontesDisp = (fonteRaw && fonteRaw !== 'TODAS') ? [fonteRaw] : ['DPRF','DER','SEMAD'];
+  fontesDisp.forEach(function(fn){
+    var els = (DADOS.fontes && DADOS.fontes[fn] && DADOS.fontes[fn].elementos) ? DADOS.fontes[fn].elementos : {};
+    Object.keys(els).forEach(function(k){
+      var e = parseInt(k)||0; if(!e) return;
+      dispPorElem[e] = (dispPorElem[e]||0) + (els[k]||0);
+    });
+  });
+
   // Itens da programação da fonte selecionada, agrupados por elemento
   const prog = DADOS.programacao || {};
   const itensProgPorElem = {};
@@ -1666,7 +1690,7 @@ function renderizarExecucaoElemento(fonteSel, programadoPorElem, fonteRaw) {
   // Guardar dados para o detalhamento expansível
   window._execDetalhe = { itensProgPorElem, contratos: DADOS.contratos||[] };
 
-  let tProg=0, tEmp=0, tExe=0, tSaldo=0;
+  let tProg=0, tEmp=0, tExe=0, tSaldo=0, tDisp=0;
   const tbody = document.getElementById('tbody-execucao');
   tbody.innerHTML = '';
   elemsOrd.forEach(e => {
@@ -1680,11 +1704,15 @@ function renderizarExecucaoElemento(fonteSel, programadoPorElem, fonteRaw) {
     tr.style.cursor = 'pointer';
     tr.className = 'exec-linha';
     tr.setAttribute('onclick', 'toggleExecItens(this,'+e+')');
+    const disp = dispPorElem[e];
+    const dispHtml = (disp!=null && disp>0) ? `<span style="color:#2F6B1E;font-weight:700">${BRL(disp)}</span>` : '<span style="color:#9A8A5A">—</span>';
+    tDisp += (disp||0);
     tr.innerHTML = `<td style="font-weight:600"><span class="exec-seta">▸</span> ${elemLabel(e)}</td>
       <td>${BRL(prog)}</td>
       <td style="color:#9A8A5A;font-weight:600">${BRL(emp)}</td>
       <td style="color:#185FA5;font-weight:600">${BRL(exe)}</td>
-      <td style="${corSaldo};font-weight:600">${BRL(saldo)}</td>`;
+      <td style="${corSaldo};font-weight:600">${BRL(saldo)}</td>
+      <td>${dispHtml}</td>`;
     tbody.appendChild(tr);
   });
 
@@ -1695,7 +1723,8 @@ function renderizarExecucaoElemento(fonteSel, programadoPorElem, fonteRaw) {
     <td style="font-weight:700">${BRL(tProg)}</td>
     <td style="font-weight:700;color:#9A8A5A">${BRL(tEmp)}</td>
     <td style="font-weight:700;color:#185FA5">${BRL(tExe)}</td>
-    <td style="font-weight:700;color:#a32d2d">${BRL(tSaldo)}</td>`;
+    <td style="font-weight:700;color:#a32d2d">${BRL(tSaldo)}</td>
+    <td style="font-weight:700;color:#2F6B1E">${BRL(tDisp)}</td>`;
   tbody.appendChild(trTot);
 
   const lbl = document.getElementById('total-execucao-label');
@@ -1723,7 +1752,7 @@ function toggleExecItens(linhaEl, elem) {
   const itensProg = dados.itensProgPorElem[elem] || [];
 
   // Detalhamento enxuto: lista simples descrição → valor de cada item programado
-  let html = '<td colspan="5" style="padding:0;">';
+  let html = '<td colspan="6" style="padding:0;">';
   html += '<div style="background:#FBFAF4;border-left:3px solid #9A8A5A;padding:10px 18px;">';
   if (itensProg.length > 0) {
     itensProg.slice().sort((a,b)=>b.total-a.total).forEach(it=>{
