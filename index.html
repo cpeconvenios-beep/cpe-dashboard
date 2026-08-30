@@ -653,7 +653,7 @@ const DADOS_FIXOS = {
   fontes: {
     DPRF:  { convenio:13086500.92, planejado:16635676.10, recebido:6251313.00, saldo:580050.47,  aReceber:21779503.04, elementos:{30:336024.26,37:0,39:244026.21,40:0} },
     DER:   { convenio:15000000.00, planejado:15000000.00, recebido:5351412.35, saldo:770036.88,  elementos:{30:0,37:5000,39:765036.88,40:0} },
-    SEMAD: { convenio:13000000.00, planejado:13000000.00, recebido:7745768.20, saldo:1513581.31, elementos:{30:1106079.45,37:5000,39:402501.86,40:0} }
+    SEMAD: { convenio:13000000.00, planejado:13000000.00, recebido:7745768.20, saldo:1513581.31, aReceberProg:3993888.40, elementos:{30:1106079.45,37:5000,39:402501.86,40:0} }
   },
   contas: { c1250098:2863668.66, c1250057:498860.37, total:3362529.03 },
   liquidacao: [{"elem": 37, "fonte": "DER", "empenhado": 22609.17, "executado": 18996.45}, {"elem": 39, "fonte": "SEMAD", "empenhado": 706250.19, "executado": 29743.66}, {"elem": 39, "fonte": "DPRF", "empenhado": 1447898.36, "executado": 115807.12}, {"elem": 39, "fonte": "DER", "empenhado": 499456.08, "executado": 110650.03}, {"elem": 40, "fonte": "DPRF", "empenhado": 18285.68, "executado": 0}, {"elem": 47, "fonte": "DPRF", "empenhado": 5000, "executado": 0}, {"elem": 47, "fonte": "DER", "empenhado": 7000, "executado": 410.72}, {"elem": 15, "fonte": "SEMAD", "empenhado": 611816.96, "executado": 600012.61}, {"elem": 15, "fonte": "DPRF", "empenhado": 399965.68, "executado": 353568.73}, {"elem": 15, "fonte": "DER", "empenhado": 312843.25, "executado": 312843.25}, {"elem": 37, "fonte": "SEMAD", "empenhado": 15000, "executado": 11546.54}, {"elem": 37, "fonte": "DPRF", "empenhado": 363682.42, "executado": 186844.1}, {"elem": 30, "fonte": "DPRF", "empenhado": 820000, "executado": 820000}, {"elem": 39, "fonte": "DPRF", "empenhado": 1584521.45, "executado": 1584521.45}, {"elem": 40, "fonte": "DPRF", "empenhado": 1188705.4, "executado": 1188705.4}, {"elem": 39, "fonte": "DER", "empenhado": 1529347.4, "executado": 1529347.4}, {"elem": 30, "fonte": "SEMAD", "empenhado": 600000, "executado": 600000}, {"elem": 39, "fonte": "SEMAD", "empenhado": 1791107.2, "executado": 1791107.2}, {"elem": 39, "fonte": "DER", "empenhado": 500000, "executado": 500000}, {"elem": 39, "fonte": "SEMAD", "empenhado": 490000, "executado": 490000}, {"elem": 52, "fonte": "DPRF", "empenhado": 120750, "executado": 120750}],
@@ -691,7 +691,7 @@ function elemLabel(elem) {
 const BRL_M = v => 'R$' + ((parseFloat(v)||0)/1e6).toFixed(2) + 'M';
 const BRL_K = v => 'R$' + ((parseFloat(v)||0)/1e3).toFixed(0) + 'K';
 // A Receber por fonte: usa valor fixo (programação) quando definido, senão Convênio − Recebido
-function aReceberFonte(fd){ return (fd && fd.aReceber!=null) ? fd.aReceber : Math.max(0,((fd&&fd.convenio)||0)-((fd&&fd.recebido)||0)); }
+function aReceberFonte(fd){ if(fd && fd.aReceberProg!=null) return fd.aReceberProg; return (fd && fd.aReceber!=null) ? fd.aReceber : Math.max(0,((fd&&fd.convenio)||0)-((fd&&fd.recebido)||0)); }
 // Total de Arrecadação por fonte: DPRF = soma das programações (aReceber); DER/SEMAD = Convênio
 function arrecadacaoFonte(fd){ return (fd && fd.aReceber!=null) ? fd.aReceber : ((fd&&fd.convenio)||0); }
 
@@ -846,6 +846,7 @@ function aplicarDadosAppsScript(dados) {
       planejado: aoVivo(f,'SEMAD_conv', fx.SEMAD.planejado),
       recebido: aoVivo(f,'SEMAD_receb', fx.SEMAD.recebido),
       saldo: aoVivo(f,'SEMAD_saldo',0),
+      aReceberProg: aoVivo(f,'SEMAD_aReceber', fx.SEMAD.aReceberProg),
       elementos: { 30:f.SEMAD_30||0, 37:f.SEMAD_37||0, 39:f.SEMAD_39||0, 40:f.SEMAD_40||0 }
     }
   };
@@ -1123,7 +1124,7 @@ function renderizarVisaoGeral() {
       <div class="detail-line">Planejado: <span style="color:#9A8A5A;font-weight:600;">${BRL(fd.planejado||0)}</span></div>
       ${retencaoHtml}
       <div class="detail-line">Recebido: <span>${BRL(fd.recebido||0)}</span> (${pct}%)</div>
-      <div class="detail-line">A Receber (efetivo): <span style="color:#0A0A0A;font-weight:700;">${BRL(liquidoCPE - (fd.recebido||0))}</span></div>
+      <div class="detail-line">A Receber (efetivo): <span style="color:#0A0A0A;font-weight:700;">${BRL(fd.aReceberProg!=null ? fd.aReceberProg : (liquidoCPE - (fd.recebido||0)))}</span></div>
       <div class="detail-line"><span class="saldo-label">Saldo atual:</span> <span class="${saldoClass}">${BRL(saldo)}</span></div>
       <div class="tipo-tag">${tipos[i]}</div>
     </div>`;
@@ -1970,7 +1971,7 @@ function _diGraficos(filt){
   // grafico TOTAL (barras horizontais)
   destroyChart('chartDiariasPostoTotal');
   var cPT=document.getElementById('chartDiariasPostoTotal');
-  if(cPT) chartInstances['chartDiariasPostoTotal']=new Chart(cPT,{type:'bar',data:{labels:pTotLabels,datasets:[{label:'Gasto total',data:pTotVals,backgroundColor:'#9A8A5A',borderRadius:3}]},options:{indexAxis:'y',responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:function(c){return fmtR(c.parsed.x);}}}},scales:{x:{ticks:{callback:function(v){return (v/1000)+'k';}}}}}});
+  if(cPT) chartInstances['chartDiariasPostoTotal']=new Chart(cPT,{type:'bar',data:{labels:pTotLabels,datasets:[{label:'Gasto total',data:pTotVals,backgroundColor:'#0A0A0A',borderRadius:3}]},options:{indexAxis:'y',responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:function(c){return fmtR(c.parsed.x);}}}},scales:{x:{ticks:{callback:function(v){return (v/1000)+'k';}}}}}});
   // grafico MEDIA (barras horizontais)
   destroyChart('chartDiariasPostoMedia');
   var cPM=document.getElementById('chartDiariasPostoMedia');
@@ -2272,7 +2273,7 @@ function gerarGraficosDemandasSituacao() {
   lista.forEach(function(d){ var idx=_ultG(d.etapas); if(idx<0)_naoIniG++; else _contG[idx]++; });
   const labels = ['Não iniciada'].concat(_NOMESG);
   const valores = [_naoIniG].concat(_contG);
-  var _cores=['#9A8A5A','#7BA05B','#6B9BD1','#D4Af37','#E6A817','#E87722','#C0623A','#B5651D','#A0522D','#8A6D3B','#6B8E23','#556B2F','#4682B4','#5F9EA0','#2E8B57','#3B6D11'];
+  var _cores=['#9A8A5A','#0A0A0A','#BBA96A','#6B5B45','#D4AF37','#3B3428','#8A6D3B','#C9BC94','#5C5341','#E7E0CE','#7A6A45','#2B2B2B','#A8965E','#4A4335','#D9CBA0','#1A1A1A'];
   const _bg = labels.map(function(l,i){ return _cores[i % _cores.length]; });
 
   const bar = document.getElementById('chartDemandasSituacao');
