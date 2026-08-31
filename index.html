@@ -230,6 +230,21 @@ body{font-family:'Segoe UI',Arial,sans-serif;background:#F0EDE0;color:#0A0A0A;fo
 #tab-content-diarias .di-chart-title{font-size:13px;font-weight:700;color:#0A0A0A;margin-bottom:10px;text-align:center;}
 #tab-content-diarias .di-chart-wrap{position:relative;height:260px;}
 @media(max-width:900px){#tab-content-diarias .di-filtros{grid-template-columns:1fr 1fr;}#tab-content-diarias .di-cards{grid-template-columns:1fr 1fr;}#tab-content-diarias .di-charts{grid-template-columns:1fr;}}
+.ct-pct-wrap{display:flex;align-items:center;gap:6px;min-width:90px;}
+.ct-pct-bar{flex:1;height:10px;background:#EDE8DA;border-radius:5px;overflow:hidden;min-width:50px;}
+.ct-pct-fill{height:100%;background:#3B6D11;border-radius:5px;}
+.ct-pct-txt{font-size:11px;font-weight:700;color:#2F6B1E;white-space:nowrap;}
+#tab-content-diarias .di-top5-sec{margin-bottom:18px;}
+#tab-content-diarias .di-top5-titulo{font-size:13px;font-weight:700;color:#0A0A0A;margin-bottom:12px;text-align:center;}
+#tab-content-diarias .di-top5-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;}
+#tab-content-diarias .di-top5-card{background:#fff;border:1px solid #ECE5D4;border-radius:10px;padding:12px 14px;}
+#tab-content-diarias .di-top5-posto{font-size:12px;font-weight:800;color:#0A0A0A;margin-bottom:8px;padding-bottom:6px;border-bottom:2px solid #9A8A5A;}
+#tab-content-diarias .di-top5-item{display:flex;justify-content:space-between;gap:8px;font-size:11px;padding:4px 0;border-bottom:1px solid #F0EDE0;}
+#tab-content-diarias .di-top5-item:last-child{border-bottom:none;}
+#tab-content-diarias .di-top5-nome{color:#3a3730;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+#tab-content-diarias .di-top5-rank{display:inline-block;width:16px;height:16px;line-height:16px;text-align:center;border-radius:50%;background:#9A8A5A;color:#fff;font-size:9px;font-weight:700;margin-right:5px;}
+#tab-content-diarias .di-top5-val{color:#2F6B1E;font-weight:700;white-space:nowrap;}
+@media(max-width:900px){#tab-content-diarias .di-top5-grid{grid-template-columns:1fr;}}
 </style>
 </head>
 <body>
@@ -415,7 +430,7 @@ body{font-family:'Segoe UI',Arial,sans-serif;background:#F0EDE0;color:#0A0A0A;fo
       <span class="tit">Contratos com Etiquetas de Vigência</span>
       <span class="tot" id="total-contratos-label">Carregando...</span>
     </div>
-    <div style="overflow-x:auto;"><table class="data-table"><thead><tr><th>Status</th><th>Dias</th><th>Elem.</th><th>Empresa</th><th>Objeto</th><th>Fim Vigência</th><th>Valor Total</th><th>Empenhado</th><th>A Empenhar</th><th>Crédito Garantido</th></tr></thead><tbody id="tbody-contratos"><tr><td colspan="10" style="text-align:center;padding:20px;">Carregando...</td></tr></tbody></table></div>
+    <div style="overflow-x:auto;"><table class="data-table"><thead><tr><th>Status</th><th>Dias</th><th>Elem.</th><th>Empresa</th><th>Objeto</th><th>Fim Vigência</th><th>Valor Total</th><th>Empenhado</th><th>A Empenhar</th><th>Crédito Garantido</th><th>% Pago</th></tr></thead><tbody id="tbody-contratos"><tr><td colspan="11" style="text-align:center;padding:20px;">Carregando...</td></tr></tbody></table></div>
   </div>
 </div>
 
@@ -446,6 +461,15 @@ body{font-family:'Segoe UI',Arial,sans-serif;background:#F0EDE0;color:#0A0A0A;fo
       <span class="tot" id="total-execucao-label"></span>
     </div>
     <div style="overflow-x:auto;"><table class="data-table"><thead><tr><th>Elemento</th><th>Programado</th><th>Empenhado</th><th>Executado (pago)</th><th>Saldo a Empenhar</th><th>Saldo Disponível</th></tr></thead><tbody id="tbody-execucao"></tbody></table></div>
+  </div>
+  <div class="table-card" style="margin-top:16px;">
+    <div class="table-header-row"><span class="tit">Executado × Programado</span></div>
+    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:14px;">
+      <div style="text-align:center;"><div style="font-size:11px;font-weight:700;color:#6B5B45;margin-bottom:6px;">GERAL</div><div style="position:relative;height:180px;"><canvas id="chartExecProgGeral"></canvas></div></div>
+      <div style="text-align:center;"><div style="font-size:11px;font-weight:700;color:#6B5B45;margin-bottom:6px;">DPRF</div><div style="position:relative;height:180px;"><canvas id="chartExecProgDPRF"></canvas></div></div>
+      <div style="text-align:center;"><div style="font-size:11px;font-weight:700;color:#6B5B45;margin-bottom:6px;">DER</div><div style="position:relative;height:180px;"><canvas id="chartExecProgDER"></canvas></div></div>
+      <div style="text-align:center;"><div style="font-size:11px;font-weight:700;color:#6B5B45;margin-bottom:6px;">SEMAD</div><div style="position:relative;height:180px;"><canvas id="chartExecProgSEMAD"></canvas></div></div>
+    </div>
   </div>
   <hr class="section-divider"/>
   <div class="section-header"><span class="section-num">P4</span><h2>Itens da Programação</h2></div>
@@ -553,8 +577,8 @@ body{font-family:'Segoe UI',Arial,sans-serif;background:#F0EDE0;color:#0A0A0A;fo
     </div>
     <div style="overflow-x:auto;">
       <table class="data-table">
-        <thead><tr><th style="width:28px;"></th><th>Material</th><th>PA - Protocolo</th><th>Data</th><th>Origem</th><th>Status</th><th>Grau de Prioridade</th><th>Valor Estimado</th><th>Prazo</th><th>Progresso</th></tr></thead>
-        <tbody id="demandas-tbody"><tr><td colspan="10" style="text-align:center;color:#9A8A5A;padding:20px;">Carregando...</td></tr></tbody>
+        <thead><tr><th style="width:28px;"></th><th>Material</th><th>PA - Protocolo</th><th>Data</th><th>Origem</th><th>Status</th><th>Grau de Prioridade</th><th>Valor Estimado</th><th>Prazo (Etapa)</th><th>Prazo (Conclusão)</th><th>Progresso</th></tr></thead>
+        <tbody id="demandas-tbody"><tr><td colspan="11" style="text-align:center;color:#9A8A5A;padding:20px;">Carregando...</td></tr></tbody>
       </table>
     </div>
   </div>
@@ -620,6 +644,11 @@ body{font-family:'Segoe UI',Arial,sans-serif;background:#F0EDE0;color:#0A0A0A;fo
         <div class="di-chart-title">GASTO MÉDIO POR POSTO/GRAD (custo ÷ nº de registros)</div>
         <div class="di-chart-wrap" style="height:300px"><canvas id="chartDiariasPostoMedia"></canvas></div>
       </div>
+    </div>
+
+    <div class="di-top5-sec">
+      <div class="di-top5-titulo">TOP 5 MILITARES POR POSTO/GRAD (que mais receberam diárias)</div>
+      <div id="di-top5-container" class="di-top5-grid"></div>
     </div>
 
     <div class="di-tbl-wrap">
@@ -1460,7 +1489,8 @@ function renderizarContratos() {
       <td style="font-size:11px;color:#9A8A5A">${obj}</td>
       <td>${c.fim_str||'-'}</td><td>${BRL(c.total)}</td><td>${emp_str}</td>
       <td style="color:#a32d2d;font-weight:600">${BRL(c.aEmp)}</td>
-      ${creditoCol}`;
+      ${creditoCol}
+      ${(function(){ var pago = (c.total>0) ? ((c.total-(c.emp||0))/c.total*100) : 0; if(pago<0)pago=0; if(pago>100)pago=100; return '<td><div class="ct-pct-wrap"><div class="ct-pct-bar"><div class="ct-pct-fill" style="width:'+pago.toFixed(0)+'%"></div></div><span class="ct-pct-txt">'+pago.toFixed(0)+'%</span></div></td>'; })()}`;
     tbody.appendChild(tr);
   });
 
@@ -1637,9 +1667,44 @@ function renderizarProgramacao() {
 
   // ===== Execução Orçamentária por Elemento (cruza Programação x Contratos) =====
   renderizarExecucaoElemento(selLabel, porElem, sel);
+  gerarDonutsExecProg();
 }
 
 // Cruza o programado (por elemento) com empenhado/executado (da aba LIQUIDAÇÃO, filtrada por fonte)
+function gerarDonutsExecProg(){
+  if(typeof Chart==='undefined') return;
+  var prog = DADOS.programacao || {};
+  var liq = DADOS.liquidacao || [];
+  // programado por fonte
+  function progFonte(fn){ return (prog[fn]||[]).reduce(function(s,it){ return s + (it.total||0); }, 0); }
+  // executado por fonte (da liquidacao)
+  function exeFonte(fn){ return liq.reduce(function(s,l){ return s + ((l.fonte===fn)?(l.executado||0):0); }, 0); }
+  var dados = {
+    Geral: { prog: progFonte('DPRF')+progFonte('DER')+progFonte('SEMAD'), exe: liq.reduce(function(s,l){return s+(l.executado||0);},0) },
+    DPRF: { prog: progFonte('DPRF'), exe: exeFonte('DPRF') },
+    DER:  { prog: progFonte('DER'),  exe: exeFonte('DER') },
+    SEMAD:{ prog: progFonte('SEMAD'),exe: exeFonte('SEMAD') }
+  };
+  function donut(canvasId, d){
+    var el = document.getElementById(canvasId); if(!el) return;
+    destroyChart(canvasId);
+    var restante = Math.max(0, (d.prog||0) - (d.exe||0));
+    var pct = d.prog>0 ? (d.exe/d.prog*100) : 0;
+    chartInstances[canvasId] = new Chart(el,{
+      type:'doughnut',
+      data:{ labels:['Executado','Não executado'], datasets:[{ data:[d.exe, restante], backgroundColor:['#0A0A0A','#BBA96A'], borderColor:'#F0EDE0', borderWidth:2 }] },
+      options:{ responsive:true, maintainAspectRatio:false, cutout:'62%',
+        plugins:{ legend:{display:false},
+          tooltip:{ callbacks:{ label:function(c){ var t=c.dataset.data.reduce(function(a,b){return a+b;},0); var p=t?(c.parsed/t*100).toFixed(1):0; return c.label+': '+BRL(c.parsed)+' ('+p+'%)'; } } } }
+      },
+      plugins:[{ id:'centerText'+canvasId, afterDraw:function(chart){ var ctx=chart.ctx; var w=chart.width, hh=chart.height; ctx.save(); ctx.font='700 15px Segoe UI'; ctx.fillStyle='#0A0A0A'; ctx.textAlign='center'; ctx.textBaseline='middle'; ctx.fillText(pct.toFixed(1)+'%', w/2, hh/2); ctx.restore(); } }]
+    });
+  }
+  donut('chartExecProgGeral', dados.Geral);
+  donut('chartExecProgDPRF', dados.DPRF);
+  donut('chartExecProgDER', dados.DER);
+  donut('chartExecProgSEMAD', dados.SEMAD);
+}
 function renderizarExecucaoElemento(fonteSel, programadoPorElem, fonteRaw) {
   const tituloEl = document.getElementById('execucao-titulo');
   if (tituloEl) tituloEl.textContent = 'Programado × Empenhado × Executado × Saldo — ' + fonteSel;
@@ -1943,7 +2008,7 @@ function renderizarDiarias(){
   if(tb){
     if(!filt.length){ tb.innerHTML='<tr><td colspan="15" style="text-align:center;color:#9A8A5A;padding:20px;">Nenhum registro encontrado.</td></tr>'; }
     else {
-      var lim=filt.slice(0,500);
+      var lim=filt.slice().sort(function(a,b){ return _diNum(b.custo)-_diNum(a.custo); }).slice(0,500);
       tb.innerHTML=lim.map(function(d){
         return '<tr>'+
           '<td>'+_diEsc(d.nome)+'</td>'+'<td>'+_diEsc(d.postoGrad)+'</td>'+'<td>'+_diEsc(d.numPolicia)+'</td>'+
@@ -1956,7 +2021,39 @@ function renderizarDiarias(){
     }
   }
   window._DI_FILT = filt;
+  _diTop5PorPosto(filt);
   _diGraficos(filt);
+}
+function _diTop5PorPosto(filt){
+  var cont = document.getElementById('di-top5-container');
+  if(!cont) return;
+  // agrupa por posto/grad -> por militar (nome) -> soma custo
+  var porPosto = {};
+  filt.forEach(function(d){
+    var p = (d.postoGrad||'—').trim() || '—';
+    var nome = (d.nome||'—').trim() || '—';
+    if(!porPosto[p]) porPosto[p] = {};
+    porPosto[p][nome] = (porPosto[p][nome]||0) + _diNum(d.custo);
+  });
+  // ordena postos pela hierarquia militar (do mais alto ao mais baixo)
+  var _HIER=['CEL','TEN CEL','MAJ','CAP','1 TEN','2 TEN','CAD','SUB TEN','1 SGT','2 SGT','3 SGT','CB','SD 1 CL'];
+  var _rankPosto=function(p){ var i=_HIER.indexOf((p||'').trim().toUpperCase()); return i<0?999:i; };
+  var postosOrd = Object.keys(porPosto).sort(function(a,b){
+    var ra=_rankPosto(a), rb=_rankPosto(b);
+    if(ra!==rb) return ra-rb;
+    return (a||'').localeCompare(b||'');
+  });
+  if(!postosOrd.length){ cont.innerHTML = '<div style="color:#9A8A5A;font-size:12px;padding:12px;">Sem dados para exibir.</div>'; return; }
+  var html = postosOrd.map(function(p){
+    var militares = porPosto[p];
+    var top5 = Object.keys(militares).map(function(n){ return {nome:n, val:militares[n]}; })
+                 .sort(function(a,b){ return b.val-a.val; }).slice(0,5);
+    var itens = top5.map(function(m,i){
+      return '<div class="di-top5-item"><span class="di-top5-nome"><span class="di-top5-rank">'+(i+1)+'</span>'+_diEsc(m.nome)+'</span><span class="di-top5-val">'+_diMoeda(m.val)+'</span></div>';
+    }).join('');
+    return '<div class="di-top5-card"><div class="di-top5-posto">'+_diEsc(p)+'</div>'+itens+'</div>';
+  }).join('');
+  cont.innerHTML = html;
 }
 function _diGraficos(filt){
   if(typeof Chart==='undefined') return;
@@ -2012,7 +2109,7 @@ function renderizarDemandas(){
   var tot = document.getElementById('demandas-total');
   if(tot) tot.textContent = lista.length + ' demanda(s)'; var _cardsEl = document.getElementById('demandas-cards'); if(_cardsEl){ var _nrm=function(s){return (s==null?'':String(s)).toUpperCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').trim();}; var _NOMESC=['DOD','3 Orçamentos','Garantia Orçamentária','ETP','Edital / Aviso','Publicação / Disponib.','Adjudicação / Homolog.']; var _ult=function(et){var last=-1; if(Array.isArray(et)){for(var k=0;k<7;k++){if(_nrm(et[k])==='CONCLUIDO')last=k;}} return last;}; window._SIT_LISTA=lista; window._SIT_NOMES=_NOMESC; window._SIT_ULT=_ult; var _cont=new Array(7).fill(0); var _naoIni=0; lista.forEach(function(d){var idx=_ult(d.etapas); if(idx<0)_naoIni++; else _cont[idx]++;}); _cardsEl.classList.remove('loading'); var _cards=[]; _cards.push('<div class="alerta-card et-zero" onclick="abrirModalSituacao(-1)"><div class="alerta-label"><span class="et-idx">0</span>Não iniciada</div><div class="alerta-num" style="color:#9A8A5A">'+_naoIni+'</div><div class="alerta-sub">demanda(s)</div></div>'); for(var k=0;k<7;k++){ _cards.push('<div class="alerta-card" onclick="abrirModalSituacao('+k+')"><div class="alerta-label"><span class="et-idx">'+(k+1)+'</span>'+_NOMESC[k]+'</div><div class="alerta-num" style="color:#3B6D11">'+_cont[k]+'</div><div class="alerta-sub">demanda(s)</div></div>'); } _cardsEl.innerHTML=_cards.join(''); }
   if(!tb) return;
-  if(!lista.length){ tb.innerHTML = '<tr><td colspan="10" style="text-align:center;color:#888;padding:20px;">Nenhuma demanda cadastrada.</td></tr>'; return; }
+  if(!lista.length){ tb.innerHTML = '<tr><td colspan="11" style="text-align:center;color:#888;padding:20px;">Nenhuma demanda cadastrada.</td></tr>'; return; }
   var esc = function(s){ return (s==null?'':String(s)).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); };
   var dash = function(s){ s = esc(s); return s ? s : '\u2014'; };
   var _normET = function(s){ return String(s==null?'':s).toUpperCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').trim(); };
@@ -2023,17 +2120,60 @@ function renderizarDemandas(){
   var _parseData=function(s){ if(!s)return null; var m=String(s).trim().match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/); if(!m)return null; var d=new Date(+m[3],+m[2]-1,+m[1]); return isNaN(d)?null:d; };
   var _hoje=function(){ var n=new Date(); return new Date(n.getFullYear(),n.getMonth(),n.getDate()); };
   var _diasEntre=function(a,b){ return Math.floor((b-a)/86400000); };
-  var _prazoSit=function(dataStr, etapas){
-    var d0=_parseData(dataStr); if(!d0) return {label:'\u2014', cls:'prazo-na'};
-    var atual=-1; for(var k=0;k<7;k++){ if(_normET((etapas||[])[k])!=='CONCLUIDO'){ atual=k; break; } }
-    if(atual===-1) return {label:'Conclu\u00edda', cls:'prazo-concl'};
-    var limite=_ACC[atual]; var decorrido=_diasEntre(d0,_hoje()); var restante=limite-decorrido;
-    if(restante<0) return {label:'Atrasada '+Math.abs(restante)+'d', cls:'prazo-atrasada', atual:atual, restante:restante};
-    if(restante===0) return {label:'Vence hoje', cls:'prazo-urgente', atual:atual, restante:restante};
-    if(restante<=2) return {label:'Faltam '+restante+'d', cls:'prazo-urgente', atual:atual, restante:restante};
-    return {label:'Faltam '+restante+'d', cls:'prazo-ok', atual:atual, restante:restante};
+  var _addDias=function(dt,n){ var x=new Date(dt.getTime()); x.setDate(x.getDate()+n); return x; };
+  var _hojeISO=function(){ var n=_hoje(); return n.getFullYear()+'-'+('0'+(n.getMonth()+1)).slice(-2)+'-'+('0'+n.getDate()).slice(-2); };
+  var _parseISO=function(s){ var m=String(s||'').match(/^(\d{4})-(\d{2})-(\d{2})/); if(!m)return null; return new Date(+m[1],+m[2]-1,+m[3]); };
+  var _NOMES7P=['DOD','3 Or\u00e7amentos','Garantia Or\u00e7ament\u00e1ria','ETP','Edital / Aviso','Publica\u00e7\u00e3o / Disponib.','Adjudica\u00e7\u00e3o / Homolog.'];
+  // Registro de conclusão por etapa (localStorage): grava a data em que cada etapa foi vista como CONCLUÍDO
+  var _LS_KEY='cpe_etapas_concl_v1';
+  var _lerConcl=function(){ try{ return JSON.parse(localStorage.getItem(_LS_KEY)||'{}'); }catch(e){ return {}; } };
+  var _salvarConcl=function(o){ try{ localStorage.setItem(_LS_KEY, JSON.stringify(o)); }catch(e){} };
+  var _syncConcl=function(d){
+    var store=_lerConcl();
+    var key=(d.protocolo||d.material||'').toString().trim() || JSON.stringify(d.etapas||[]);
+    var rec=store[key]||{}; var hoje=_hojeISO(); var mudou=false;
+    for(var i=0;i<7;i++){
+      var concl=_normET((d.etapas||[])[i])==='CONCLUIDO';
+      if(concl && !rec[i]){ rec[i]=hoje; mudou=true; }
+      if(!concl && rec[i]){ delete rec[i]; mudou=true; }
+    }
+    if(mudou){ store[key]=rec; _salvarConcl(store); }
+    return rec;
   };
-  var _prazoBadge=function(dataStr, etapas){ var s=_prazoSit(dataStr,etapas); return '<span class="prazo-badge '+s.cls+'">'+s.label+'</span>'; };
+  var _corPrazo=function(restante){
+    if(restante<0) return {label:'Atrasada '+Math.abs(restante)+'d', cls:'prazo-atrasada'};
+    if(restante===0) return {label:'Vence hoje', cls:'prazo-urgente'};
+    if(restante<=2) return {label:'Faltam '+restante+'d', cls:'prazo-urgente'};
+    return {label:'Faltam '+restante+'d', cls:'prazo-ok'};
+  };
+  // Prazo POR ETAPA: conta a partir da conclusão da etapa anterior (data registrada)
+  var _prazoEtapa=function(d){
+    var d0=_parseData(d.data); if(!d0) return {label:'\u2014', cls:'prazo-na'};
+    var etapas=d.etapas||[];
+    var atual=-1; for(var k=0;k<7;k++){ if(_normET(etapas[k])!=='CONCLUIDO'){ atual=k; break; } }
+    if(atual===-1) return {label:'Conclu\u00edda', cls:'prazo-concl'};
+    var rec=_syncConcl(d);
+    var start;
+    if(atual===0){ start=d0; }
+    else { var prev=_parseISO(rec[atual-1]); start=prev||d0; }
+    var deadline=_addDias(start,_PRAZOS[atual]);
+    var restante=_diasEntre(_hoje(),deadline);
+    var r=_corPrazo(restante); r.atual=atual; r.nome=_NOMES7P[atual]; return r;
+  };
+  // Prazo de CONCLUSÃO: soma de todos os prazos (41 dias) a partir da DATA de abertura
+  var _prazoConclusao=function(d){
+    var d0=_parseData(d.data); if(!d0) return {label:'\u2014', cls:'prazo-na'};
+    var etapas=d.etapas||[];
+    var todas=etapas.length>0; for(var k=0;k<7;k++){ if(_normET(etapas[k])!=='CONCLUIDO'){ todas=false; break; } }
+    if(todas) return {label:'Conclu\u00edda', cls:'prazo-concl'};
+    var total=_PRAZOS.reduce(function(a,b){return a+b;},0);
+    var deadline=_addDias(d0,total);
+    var restante=_diasEntre(_hoje(),deadline);
+    return _corPrazo(restante);
+  };
+  var _prazoSpan=function(sit){ return '<span class="prazo-badge '+sit.cls+'">'+sit.label+'</span>'; };
+  var _prazoBadgeEtapa=function(d){ return _prazoSpan(_prazoEtapa(d)); };
+  var _prazoBadgeConcl=function(d){ return _prazoSpan(_prazoConclusao(d)); };
   var _grauCls = function(g){ var u=_normET(g); if(u.indexOf('1')===0||u.indexOf('EXTREMAMENTE')>=0)return 'grau-1'; if(u.indexOf('2')===0||u.indexOf('NECESSARIO')>=0)return 'grau-2'; if(u.indexOf('3')===0||u.indexOf('NAO PRIORITARIO')>=0||u.indexOf('PRIORITARIO')>=0)return 'grau-3'; return 'grau-0'; };
   var _grauBadge = function(g){ var t=(g==null?'':String(g)).trim(); if(!t) return '\u2014'; return '<span class="grau-badge '+_grauCls(t)+'">'+esc(t)+'</span>'; };
   var _fmtValor = function(v){ if(v==null||v==='') return '\u2014'; var n=Number(String(v).replace(/[^0-9,.-]/g,'').replace(/\./g,'').replace(',','.')); if(!isFinite(n)||n===0) return (String(v).trim()||'\u2014'); return 'R$ '+n.toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2}); };
@@ -2052,7 +2192,8 @@ function renderizarDemandas(){
         '<td>'+esc(d.status)+'</td>'+
         '<td>'+_grauBadge(d.grauPrioridade)+'</td>'+
         '<td>'+_fmtValor(d.prioridade)+'</td>'+
-        '<td>'+_prazoBadge(d.data, d.etapas)+'</td>'+
+        '<td>'+_prazoBadgeEtapa(d)+'</td>'+
+        '<td>'+_prazoBadgeConcl(d)+'</td>'+
         '<td><div class="dem-pct-wrap"><div class="dem-pct-bar"><div class="dem-pct-fill" style="width:'+pct+'%"></div></div><span class="dem-pct-txt">'+pctInt+'%</span></div></td>'+
       '</tr>';
     var etHtml = '';
@@ -2065,8 +2206,8 @@ function renderizarDemandas(){
     }
     html +=
       '<tr class="dem-detail-row" id="dem-detail-'+i+'" style="display:none;">'+
-        '<td colspan="10"><div class="dem-detail">'+
-          '<div class="dem-meta">'+'<div class="dem-meta-item"><span class="dem-meta-lbl">Grau de Prioridade</span><span class="dem-meta-val">'+_grauBadge(d.grauPrioridade)+'</span></div>'+'<div class="dem-meta-item"><span class="dem-meta-lbl">Valor Estimado</span><span class="dem-meta-val">'+_fmtValor(d.prioridade)+'</span></div>'+'<div class="dem-meta-item"><span class="dem-meta-lbl">Situa\u00e7\u00e3o do Prazo</span><span class="dem-meta-val">'+_prazoBadge(d.data, d.etapas)+'</span></div>'+'</div>'+
+        '<td colspan="11"><div class="dem-detail">'+
+          '<div class="dem-meta">'+'<div class="dem-meta-item"><span class="dem-meta-lbl">Grau de Prioridade</span><span class="dem-meta-val">'+_grauBadge(d.grauPrioridade)+'</span></div>'+'<div class="dem-meta-item"><span class="dem-meta-lbl">Valor Estimado</span><span class="dem-meta-val">'+_fmtValor(d.prioridade)+'</span></div>'+'<div class="dem-meta-item"><span class="dem-meta-lbl">Prazo da Etapa Atual</span><span class="dem-meta-val">'+_prazoBadgeEtapa(d)+'</span></div>'+'<div class="dem-meta-item"><span class="dem-meta-lbl">Prazo de Conclus\u00e3o (41d)</span><span class="dem-meta-val">'+_prazoBadgeConcl(d)+'</span></div>'+'</div>'+
           '<div class="dem-detail-title">Execu\u00e7\u00e3o do Processo \u2014 '+pctInt+'% conclu\u00eddo</div>'+
           '<div class="dem-etapas">'+etHtml+'</div>'+
         '</div></td>'+
