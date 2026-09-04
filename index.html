@@ -245,6 +245,26 @@ body{font-family:'Segoe UI',Arial,sans-serif;background:#F0EDE0;color:#0A0A0A;fo
 #tab-content-diarias .di-top5-rank{display:inline-block;width:16px;height:16px;line-height:16px;text-align:center;border-radius:50%;background:#9A8A5A;color:#fff;font-size:9px;font-weight:700;margin-right:5px;}
 #tab-content-diarias .di-top5-val{color:#2F6B1E;font-weight:700;white-space:nowrap;}
 @media(max-width:900px){#tab-content-diarias .di-top5-grid{grid-template-columns:1fr;}}
+.convenio-card .saldo-destaque{text-align:center;margin:12px 0 8px;padding:10px;background:#F4F1E8;border-radius:8px;border:1px solid #E7E0CE;}
+.convenio-card .saldo-destaque-lbl{font-size:10px;font-weight:700;letter-spacing:.5px;color:#6B5B45;margin-bottom:2px;}
+.convenio-card .saldo-destaque-val{font-size:22px;font-weight:800;}
+.convenio-card .saldo-destaque-val.saldo-positivo{color:#2F6B1E;}
+.convenio-card .saldo-destaque-val.saldo-zero{color:#9A8A5A;}
+.dem-resumo-cards{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:14px;}
+.dem-resumo-card{background:#fff;border:1px solid #E7E0CE;border-radius:10px;padding:14px 18px;}
+.dem-resumo-lbl{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.4px;color:#6B5B45;margin-bottom:4px;}
+.dem-resumo-val{font-size:24px;font-weight:800;color:#0A0A0A;}
+@media(max-width:700px){.dem-resumo-cards{grid-template-columns:1fr;}}
+.etapa-badge{display:inline-block;padding:3px 9px;border-radius:10px;font-size:10px;font-weight:700;white-space:nowrap;}
+.etapa-curso{background:#F0EAD6;color:#6B5B45;border:1px solid #D4CDB8;}
+.etapa-concl{background:#D6EBCF;color:#2F6B1E;border:1px solid #B5D6A7;}
+#tab-content-diarias .di-exp-btn{background:#9A8A5A;color:#fff;border:none;border-radius:8px;padding:8px 18px;font-size:12px;font-weight:700;cursor:pointer;}
+#tab-content-diarias .di-exp-btn:hover{background:#0A0A0A;}
+#tab-content-diarias .di-full-tbl{width:100%;border-collapse:collapse;font-size:12px;background:#fff;}
+#tab-content-diarias .di-full-tbl th{background:#F0EDE0;color:#666;text-transform:uppercase;font-size:10px;padding:6px 10px;text-align:left;border-bottom:1px solid #D4CDB8;}
+#tab-content-diarias .di-full-tbl td{padding:5px 10px;border-bottom:1px solid #F0EDE0;}
+#tab-content-diarias .di-mil-link{color:#6B5B45;font-weight:700;cursor:pointer;text-decoration:underline;}
+#tab-content-diarias .di-mil-link:hover{color:#0A0A0A;}
 </style>
 </head>
 <body>
@@ -326,7 +346,25 @@ body{font-family:'Segoe UI',Arial,sans-serif;background:#F0EDE0;color:#0A0A0A;fo
   <div class="section-header"><span class="section-num">R1</span><h2>Saldos Disponíveis (em caixa)</h2></div>
   <div class="saldo-cards" id="saldo-cards"><div class="loading">Carregando...</div></div>
   <hr class="section-divider"/>
-  <div class="section-header"><span class="section-num">R2</span><h2>Convênio × Recebido × A Receber</h2></div>
+  <div class="section-header"><span class="section-num">R2</span><h2>Movimentação dos Repasses</h2></div>
+  <div class="repasse-row" id="repasse-row"><div class="loading">Carregando...</div></div>
+  <hr class="section-divider"/>
+  <div class="section-header"><span class="section-num">R3</span><h2>Saldo Disponível por Elemento</h2></div>
+  <div style="background:#fff;border:1px solid #D4CDB8;border-radius:6px;padding:12px 16px;margin-bottom:14px;display:flex;align-items:center;gap:16px;">
+    <label style="font-size:11px;font-weight:700;color:#666;text-transform:uppercase;">Fonte</label>
+    <select id="filtro-fonte-rep" onchange="atualizarGraficoElemento()" style="border:1px solid #ccc;border-radius:4px;padding:6px 10px;font-size:13px;min-width:160px;">
+      <option value="todas">Todas as Fontes</option>
+      <option value="DPRF">DPRF (73.10)</option>
+      <option value="DER">DER (83.20)</option>
+      <option value="SEMAD">SEMAD (52.20)</option>
+    </select>
+  </div>
+  <div class="full-chart-card">
+    <div class="chart-title">Saldo por Elemento (Selecione a Fonte)</div>
+    <div class="full-chart-wrap" style="height:240px;position:relative;"><canvas id="chartRepElem"></canvas></div>
+  </div>
+  <hr class="section-divider"/>
+  <div class="section-header"><span class="section-num">R4</span><h2>Convênio × Recebido × A Receber</h2></div>
   <div class="charts-row">
     <div class="chart-card">
       <div class="chart-title">Por Fonte: Convênio, Recebido e A Receber</div>
@@ -347,24 +385,6 @@ body{font-family:'Segoe UI',Arial,sans-serif;background:#F0EDE0;color:#0A0A0A;fo
       </div>
     </div>
   </div>
-  <hr class="section-divider"/>
-  <div class="section-header"><span class="section-num">R3</span><h2>Saldo Disponível por Elemento</h2></div>
-  <div style="background:#fff;border:1px solid #D4CDB8;border-radius:6px;padding:12px 16px;margin-bottom:14px;display:flex;align-items:center;gap:16px;">
-    <label style="font-size:11px;font-weight:700;color:#666;text-transform:uppercase;">Fonte</label>
-    <select id="filtro-fonte-rep" onchange="atualizarGraficoElemento()" style="border:1px solid #ccc;border-radius:4px;padding:6px 10px;font-size:13px;min-width:160px;">
-      <option value="todas">Todas as Fontes</option>
-      <option value="DPRF">DPRF (73.10)</option>
-      <option value="DER">DER (83.20)</option>
-      <option value="SEMAD">SEMAD (52.20)</option>
-    </select>
-  </div>
-  <div class="full-chart-card">
-    <div class="chart-title">Saldo por Elemento (Selecione a Fonte)</div>
-    <div class="full-chart-wrap" style="height:240px;position:relative;"><canvas id="chartRepElem"></canvas></div>
-  </div>
-  <hr class="section-divider"/>
-  <div class="section-header"><span class="section-num">R4</span><h2>Movimentação dos Repasses</h2></div>
-  <div class="repasse-row" id="repasse-row"><div class="loading">Carregando...</div></div>
 </div>
 
 <!-- ABA CONTRATOS -->
@@ -430,7 +450,7 @@ body{font-family:'Segoe UI',Arial,sans-serif;background:#F0EDE0;color:#0A0A0A;fo
       <span class="tit">Contratos com Etiquetas de Vigência</span>
       <span class="tot" id="total-contratos-label">Carregando...</span>
     </div>
-    <div style="overflow-x:auto;"><table class="data-table"><thead><tr><th>Status</th><th>Dias</th><th>Elem.</th><th>Empresa</th><th>Objeto</th><th>Fim Vigência</th><th>Valor Total</th><th>Empenhado</th><th>A Empenhar</th><th>Crédito Garantido</th><th>% Pago</th></tr></thead><tbody id="tbody-contratos"><tr><td colspan="11" style="text-align:center;padding:20px;">Carregando...</td></tr></tbody></table></div>
+    <div style="overflow-x:auto;"><table class="data-table"><thead><tr><th>Status</th><th>Dias</th><th>Elem.</th><th>Empresa</th><th>Objeto</th><th>Fim Vigência</th><th>Valor Total</th><th>Empenhado</th><th>A Empenhar</th><th>% Pago</th></tr></thead><tbody id="tbody-contratos"><tr><td colspan="10" style="text-align:center;padding:20px;">Carregando...</td></tr></tbody></table></div>
   </div>
 </div>
 
@@ -460,7 +480,7 @@ body{font-family:'Segoe UI',Arial,sans-serif;background:#F0EDE0;color:#0A0A0A;fo
       <span class="tit" id="execucao-titulo">Programado × Empenhado × Executado × Saldo</span>
       <span class="tot" id="total-execucao-label"></span>
     </div>
-    <div style="overflow-x:auto;"><table class="data-table"><thead><tr><th>Elemento</th><th>Programado</th><th>Empenhado</th><th>Executado (pago)</th><th>Saldo a Empenhar</th><th>Saldo Disponível</th></tr></thead><tbody id="tbody-execucao"></tbody></table></div>
+    <div style="overflow-x:auto;"><table class="data-table"><thead><tr><th>Elemento</th><th>Programado</th><th>Empenhado</th><th>Executado (pago)</th><th>Valor para Cumprimento de Contrato</th><th>Saldo Disponível</th></tr></thead><tbody id="tbody-execucao"></tbody></table></div>
   </div>
   <div class="table-card" style="margin-top:16px;">
     <div class="table-header-row"><span class="tit">Executado × Programado</span></div>
@@ -470,15 +490,6 @@ body{font-family:'Segoe UI',Arial,sans-serif;background:#F0EDE0;color:#0A0A0A;fo
       <div style="text-align:center;"><div style="font-size:11px;font-weight:700;color:#6B5B45;margin-bottom:6px;">DER</div><div style="position:relative;height:180px;"><canvas id="chartExecProgDER"></canvas></div></div>
       <div style="text-align:center;"><div style="font-size:11px;font-weight:700;color:#6B5B45;margin-bottom:6px;">SEMAD</div><div style="position:relative;height:180px;"><canvas id="chartExecProgSEMAD"></canvas></div></div>
     </div>
-  </div>
-  <hr class="section-divider"/>
-  <div class="section-header"><span class="section-num">P4</span><h2>Itens da Programação</h2></div>
-  <div class="table-card">
-    <div class="table-header-row">
-      <span class="tit">Itens Programados</span>
-      <span class="tot" id="total-prog-label"></span>
-    </div>
-    <div style="overflow-x:auto;"><table class="data-table"><thead><tr><th>Elem.</th><th>Item</th><th>Descrição</th><th>Valor Programado</th></tr></thead><tbody id="tbody-programacao"></tbody></table></div>
   </div>
 </div>
 
@@ -570,14 +581,27 @@ body{font-family:'Segoe UI',Arial,sans-serif;background:#F0EDE0;color:#0A0A0A;fo
     </div>
   </div>
 
+  <div class="dem-resumo-cards" id="dem-resumo-cards">
+    <div class="dem-resumo-card"><div class="dem-resumo-lbl">Quantidade de Demandas</div><div class="dem-resumo-val" id="dem-qtd-val">—</div></div>
+    <div class="dem-resumo-card"><div class="dem-resumo-lbl">Valor Total Estimado</div><div class="dem-resumo-val" id="dem-valor-val" style="color:#2F6B1E;">—</div></div>
+  </div>
   <div class="table-card">
     <div class="table-header-row">
       <span class="tit">Controle de Demandas</span>
       <span class="tot" id="demandas-total">— demanda(s)</span>
     </div>
+    <div style="padding:8px 14px;display:flex;align-items:center;gap:10px;flex-wrap:wrap;border-bottom:1px solid #ECE5D4;">
+      <label style="font-size:11px;font-weight:700;color:#666;text-transform:uppercase;">Grau de Prioridade</label>
+      <select id="dem-filtro-grau" onchange="renderizarDemandas()" style="border:1px solid #ccc;border-radius:4px;padding:6px 10px;font-size:13px;min-width:200px;">
+        <option value="">Todos os graus</option>
+        <option value="1">1 - Extremamente Necessário</option>
+        <option value="2">2 - Necessário</option>
+        <option value="3">3 - Não Prioritário</option>
+      </select>
+    </div>
     <div style="overflow-x:auto;">
       <table class="data-table">
-        <thead><tr><th style="width:28px;"></th><th>Material</th><th>PA - Protocolo</th><th>Data</th><th>Origem</th><th>Status</th><th>Grau de Prioridade</th><th>Valor Estimado</th><th>Prazo (Etapa)</th><th>Prazo (Conclusão)</th><th>Progresso</th></tr></thead>
+        <thead><tr><th style="width:28px;"></th><th>Material</th><th>PA - Protocolo</th><th>Data</th><th>Origem</th><th>Etapa Atual</th><th>Grau de Prioridade</th><th>Valor Estimado</th><th>Prazo (Etapa)</th><th>Prazo (Conclusão)</th><th>Progresso</th></tr></thead>
         <tbody id="demandas-tbody"><tr><td colspan="11" style="text-align:center;color:#9A8A5A;padding:20px;">Carregando...</td></tr></tbody>
       </table>
     </div>
@@ -612,6 +636,10 @@ body{font-family:'Segoe UI',Arial,sans-serif;background:#F0EDE0;color:#0A0A0A;fo
       <div class="di-campo">
         <label>Unidade</label>
         <select id="di-f-unidade" onchange="renderizarDiarias()"><option value="">Todas</option></select>
+      </div>
+      <div class="di-campo">
+        <label>Ano</label>
+        <select id="di-f-ano" onchange="renderizarDiarias()"><option value="">Todos</option></select>
       </div>
       <button class="di-limpar" onclick="limparFiltrosDiarias()">Limpar</button>
     </div>
@@ -649,17 +677,34 @@ body{font-family:'Segoe UI',Arial,sans-serif;background:#F0EDE0;color:#0A0A0A;fo
     <div class="di-top5-sec">
       <div class="di-top5-titulo">TOP 5 MILITARES POR POSTO/GRAD (que mais receberam diárias)</div>
       <div id="di-top5-container" class="di-top5-grid"></div>
+      <div style="text-align:center;margin-top:12px;">
+        <button id="di-top5-btn" class="di-exp-btn" onclick="_diToggleTop5()">▼ Expandir e ver todos os militares por posto/grad</button>
+      </div>
+      <div id="di-top5-full" style="display:none;margin-top:12px;"></div>
     </div>
 
-    <div class="di-tbl-wrap">
-      <table class="di-tbl">
-        <thead><tr>
-          <th>Nome</th><th>Posto/Grad</th><th>Nº Polícia</th><th>Unidade</th><th>Convênio</th>
-          <th>Tipo Diligência</th><th>Origem</th><th>Destino</th><th>Início</th><th>Término</th>
-          <th>Distância</th><th>Nº Diárias</th><th>Vlr Diária</th><th>Custo</th><th>Status</th>
-        </tr></thead>
-        <tbody id="diarias-tbody"><tr><td colspan="15" style="text-align:center;color:#9A8A5A;padding:20px;">Carregando...</td></tr></tbody>
-      </table>
+    <div class="di-top5-sec">
+      <div class="di-top5-titulo">TOP 5 MUNICÍPIOS MAIS VISITADOS</div>
+      <div id="di-municipios-container" class="di-top5-grid"></div>
+      <div style="text-align:center;margin-top:12px;">
+        <button id="di-mun-btn" class="di-exp-btn" onclick="_diToggleMunicipios()">▼ Expandir e ver todos os municípios</button>
+      </div>
+      <div id="di-municipios-full" style="display:none;margin-top:12px;"></div>
+    </div>
+
+    <div class="di-tbl-sec">
+      <div class="di-top5-titulo">LISTAGEM DE DIÁRIAS (use a busca ou os filtros acima para exibir resultados)</div>
+      <div id="di-tbl-vazio" style="text-align:center;color:#9A8A5A;padding:24px;font-size:13px;">Faça uma busca ou selecione um filtro para ver a listagem de diárias.</div>
+      <div class="di-tbl-wrap" id="di-tbl-wrap" style="display:none;">
+        <table class="di-tbl">
+          <thead><tr>
+            <th>Nome</th><th>Posto/Grad</th><th>Nº Polícia</th><th>Unidade</th><th>Convênio</th>
+            <th>Tipo Diligência</th><th>Origem</th><th>Destino</th><th>Início</th><th>Término</th>
+            <th>Distância</th><th>Nº Diárias</th><th>Vlr Diária</th><th>Custo</th><th>Status</th>
+          </tr></thead>
+          <tbody id="diarias-tbody"></tbody>
+        </table>
+      </div>
     </div>
   </div>
 </div>
@@ -1156,6 +1201,7 @@ function renderizarVisaoGeral() {
       ${retencaoHtml}
       <div class="detail-line">Recebido: <span>${BRL(fd.recebido||0)}</span> (${pct}%)</div>
       <div class="detail-line">A Receber (efetivo): <span style="color:#0A0A0A;font-weight:700;">${BRL(fd.aReceberProg!=null ? fd.aReceberProg : (liquidoCPE - (fd.recebido||0)))}</span></div>
+      <div class="saldo-destaque"><div class="saldo-destaque-lbl">SALDO DISPONÍVEL</div><div class="saldo-destaque-val ${saldoClass}">${BRL(saldo)}</div></div>
       ${(function(){
         var el = fd.elementos || {};
         var chaves = Object.keys(el).filter(function(k){ return (el[k]||0) > 0; });
@@ -1165,7 +1211,6 @@ function renderizarVisaoGeral() {
         }).join('');
         return '<div class="elem-sec"><div class="elem-sec-tit">Saldo por Elemento</div>'+linhas+'</div>';
       })()}
-      <div class="detail-line"><span class="saldo-label">Saldo atual:</span> <span class="${saldoClass}">${BRL(saldo)}</span></div>
       <div class="tipo-tag">${tipos[i]}</div>
     </div>`;
   });
@@ -1487,7 +1532,6 @@ function renderizarContratos() {
       <td style="font-size:11px;color:#9A8A5A">${obj}</td>
       <td>${c.fim_str||'-'}</td><td>${BRL(c.total)}</td><td>${emp_str}</td>
       <td style="color:#a32d2d;font-weight:600">${BRL(c.aEmp)}</td>
-      ${creditoCol}
       ${(function(){ var pago = (c.total>0) ? ((c.total-(c.emp||0))/c.total*100) : 0; if(pago<0)pago=0; if(pago>100)pago=100; return '<td><div class="ct-pct-wrap"><div class="ct-pct-bar"><div class="ct-pct-fill" style="width:'+pago.toFixed(0)+'%"></div></div><span class="ct-pct-txt">'+pago.toFixed(0)+'%</span></div></td>'; })()}`;
     tbody.appendChild(tr);
   });
@@ -1601,8 +1645,8 @@ function renderizarProgramacao() {
 
   if (itens.length === 0) {
     document.getElementById('kpi-programacao').innerHTML = '<div class="kpi-card"><div class="label">Sem dados</div><div class="value" style="font-size:14px;color:#888;">Programação desta fonte ainda não cadastrada</div></div>';
-    document.getElementById('tbody-programacao').innerHTML = '<tr><td colspan="4" style="text-align:center;padding:20px;color:#888;">Nenhum item programado para esta fonte.</td></tr>';
-    document.getElementById('total-prog-label').textContent = '';
+    var _tbP=document.getElementById('tbody-programacao'); if(_tbP) _tbP.innerHTML='';
+    var _tpL=document.getElementById('total-prog-label'); if(_tpL) _tpL.textContent='';
     destroyChart('chartProgElem');
     return;
   }
@@ -1645,8 +1689,9 @@ function renderizarProgramacao() {
   });
 
   // Tabela
-  document.getElementById('total-prog-label').textContent = 'Total: ' + BRL(totalGeral);
+  var _tpL2=document.getElementById('total-prog-label'); if(_tpL2) _tpL2.textContent='Total: ' + BRL(totalGeral);
   const tbody = document.getElementById('tbody-programacao');
+  if (!tbody) return; // seção P4 removida
   const mostrarFonte = (sel === 'TODAS');
   // Ajustar cabeçalho da tabela conforme modo
   const theadProg = tbody.closest('table').querySelector('thead tr');
@@ -1814,18 +1859,19 @@ function toggleExecItens(linhaEl, elem) {
   const dados = window._execDetalhe || {itensProgPorElem:{},contratos:[]};
   const itensProg = dados.itensProgPorElem[elem] || [];
 
-  // Detalhamento enxuto: lista simples descrição → valor de cada item programado
+  // Detalhamento: valores alinhados à esquerda, sob a coluna "Programado"
   let html = '<td colspan="6" style="padding:0;">';
-  html += '<div style="background:#FBFAF4;border-left:3px solid #9A8A5A;padding:10px 18px;">';
+  html += '<div style="background:#FBFAF4;border-left:3px solid #9A8A5A;padding:8px 0;">';
   if (itensProg.length > 0) {
     itensProg.slice().sort((a,b)=>b.total-a.total).forEach(it=>{
-      html += '<div style="display:flex;justify-content:space-between;padding:5px 0;border-bottom:1px solid #ECE8D8;font-size:13px;">'
-           +  '<span style="color:#555;">'+it.desc+'</span>'
-           +  '<span style="font-weight:700;color:#0A0A0A;margin-left:16px;white-space:nowrap;">'+BRL(it.total)+'</span>'
+      html += '<div style="display:grid;grid-template-columns:minmax(120px,1.4fr) 1fr 1fr 1fr 1fr 1fr;padding:5px 12px;border-bottom:1px solid #ECE8D8;font-size:13px;align-items:center;">'
+           +  '<span style="color:#555;padding-left:22px;">'+it.desc+'</span>'
+           +  '<span style="font-weight:700;color:#0A0A0A;white-space:nowrap;">'+BRL(it.total)+'</span>'
+           +  '<span></span><span></span><span></span><span></span>'
            +  '</div>';
     });
   } else {
-    html += '<div style="font-size:13px;color:#999;padding:4px 0;">Sem itens de programação para este elemento.</div>';
+    html += '<div style="font-size:13px;color:#999;padding:4px 22px;">Sem itens de programação para este elemento.</div>';
   }
   html += '</div></td>';
 
@@ -1920,8 +1966,9 @@ function _diEsc(s){ return (s==null?'':String(s)).replace(/&/g,'&amp;').replace(
 function _diMes(inicio){ // "dd/mm/yyyy hh:mm" -> mes (1-12) ou 0
   var m=String(inicio||'').match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})/); return m? parseInt(m[2],10):0;
 }
+function _diAno(inicio){ var m=String(inicio||'').match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})/); return m? m[3]:''; }
 function limparFiltrosDiarias(){
-  var ids=['di-busca','di-f-nome','di-f-posto','di-f-convenio','di-f-unidade'];
+  var ids=['di-busca','di-f-nome','di-f-posto','di-f-convenio','di-f-unidade','di-f-ano'];
   ids.forEach(function(id){ var el=document.getElementById(id); if(el) el.value=''; });
   renderizarDiarias();
 }
@@ -1932,6 +1979,9 @@ function _diPopularSelects(dados){
   fill('di-f-posto', uniq('postoGrad'));
   fill('di-f-convenio', uniq('convenio'));
   fill('di-f-unidade', uniq('unidade'));
+  // anos distintos
+  var anos={}; dados.forEach(function(d){ var a=_diAno(d.inicio); if(a) anos[a]=1; });
+  fill('di-f-ano', Object.keys(anos).sort());
   _diPop=true;
 }
 function abrirModalFonte(){
@@ -1980,11 +2030,13 @@ function renderizarDiarias(){
   var fPosto=(document.getElementById('di-f-posto')||{}).value||'';
   var fConv=(document.getElementById('di-f-convenio')||{}).value||'';
   var fUni=(document.getElementById('di-f-unidade')||{}).value||'';
+  var fAno=(document.getElementById('di-f-ano')||{}).value||'';
   var nb=busca.toUpperCase().trim(), nn=fNome.toUpperCase().trim();
   var filt = dados.filter(function(d){
     if(fPosto && (d.postoGrad||'').trim()!==fPosto) return false;
     if(fConv && (d.convenio||'').trim()!==fConv) return false;
     if(fUni && (d.unidade||'').trim()!==fUni) return false;
+    if(fAno && _diAno(d.inicio)!==fAno) return false;
     if(nn && (d.nome||'').toUpperCase().indexOf(nn)<0) return false;
     if(nb){
       var blob=[d.nome,d.postoGrad,d.numPolicia,d.unidade,d.convenio,d.tipoDilig,d.origem,d.destino,d.status,d.inicio,d.termino].join(' ').toUpperCase();
@@ -2001,10 +2053,19 @@ function renderizarDiarias(){
   setT('di-kpi-custo', _diMoeda(custo));
   setT('di-kpi-diarias', diarias.toLocaleString('pt-BR',{maximumFractionDigits:1}));
   setT('di-kpi-militares', Object.keys(nomes).length.toLocaleString('pt-BR'));
-  // tabela (limita a 500 linhas p/ performance)
+  // tabela: só exibe quando há busca OU algum filtro ativo (não fica disponível "solta")
+  var _temFiltro = !!(nb || nn || fPosto || fConv || fUni || fAno);
+  var _wrap=document.getElementById('di-tbl-wrap');
+  var _vazio=document.getElementById('di-tbl-vazio');
   var tb=document.getElementById('diarias-tbody');
-  if(tb){
-    if(!filt.length){ tb.innerHTML='<tr><td colspan="15" style="text-align:center;color:#9A8A5A;padding:20px;">Nenhum registro encontrado.</td></tr>'; }
+  if(!_temFiltro){
+    if(_wrap) _wrap.style.display='none';
+    if(_vazio){ _vazio.style.display='block'; _vazio.textContent='Faça uma busca ou selecione um filtro para ver a listagem de diárias.'; }
+    if(tb) tb.innerHTML='';
+  } else if(tb){
+    if(_wrap) _wrap.style.display='';
+    if(_vazio) _vazio.style.display='none';
+    if(!filt.length){ if(_wrap) _wrap.style.display='none'; if(_vazio){ _vazio.style.display='block'; _vazio.textContent='Nenhum registro encontrado para esta busca/filtro.'; } }
     else {
       var lim=filt.slice().sort(function(a,b){ return _diNum(b.custo)-_diNum(a.custo); }).slice(0,500);
       tb.innerHTML=lim.map(function(d){
@@ -2019,8 +2080,13 @@ function renderizarDiarias(){
     }
   }
   window._DI_FILT = filt;
+  window._DI_DADOS = dados;
   _diTop5PorPosto(filt);
+  _diMunicipios(filt);
   _diGraficos(filt);
+  // re-renderiza expansões abertas
+  if(window._diTop5Aberto) _diRenderTop5Full(filt);
+  if(window._diMunAberto) _diRenderMunicipiosFull(filt);
 }
 function _diTop5PorPosto(filt){
   var cont = document.getElementById('di-top5-container');
@@ -2053,6 +2119,102 @@ function _diTop5PorPosto(filt){
   }).join('');
   cont.innerHTML = html;
 }
+// ===== Agrupa militares por posto (helper compartilhado) =====
+function _diAgrupaPorPosto(filt){
+  var porPosto = {};
+  filt.forEach(function(d){
+    var p=(d.postoGrad||'—').trim()||'—'; var nome=(d.nome||'—').trim()||'—';
+    if(!porPosto[p]) porPosto[p]={};
+    if(!porPosto[p][nome]) porPosto[p][nome]={custo:0,qtd:0};
+    porPosto[p][nome].custo += _diNum(d.custo);
+    porPosto[p][nome].qtd += 1;
+  });
+  return porPosto;
+}
+var _DI_HIER=['CEL','TEN CEL','MAJ','CAP','1 TEN','2 TEN','CAD','SUB TEN','1 SGT','2 SGT','3 SGT','CB','SD 1 CL'];
+function _diRankPosto(p){ var i=_DI_HIER.indexOf((p||'').trim().toUpperCase()); return i<0?999:i; }
+function _diPostosOrd(porPosto){ return Object.keys(porPosto).sort(function(a,b){ var ra=_diRankPosto(a),rb=_diRankPosto(b); if(ra!==rb)return ra-rb; return (a||'').localeCompare(b||''); }); }
+
+// ===== Expansão: todos os militares por posto (com nº de diligências) =====
+window._diTop5Aberto=false;
+function _diToggleTop5(){
+  window._diTop5Aberto=!window._diTop5Aberto;
+  var full=document.getElementById('di-top5-full'); var btn=document.getElementById('di-top5-btn');
+  if(window._diTop5Aberto){ full.style.display='block'; btn.textContent='▲ Recolher'; _diRenderTop5Full(window._DI_FILT||[]); }
+  else { full.style.display='none'; btn.textContent='▼ Expandir e ver todos os militares por posto/grad'; }
+}
+function _diRenderTop5Full(filt){
+  var full=document.getElementById('di-top5-full'); if(!full) return;
+  var porPosto=_diAgrupaPorPosto(filt); var ord=_diPostosOrd(porPosto);
+  if(!ord.length){ full.innerHTML='<div style="color:#9A8A5A;font-size:12px;padding:12px;">Sem dados.</div>'; return; }
+  full.innerHTML = ord.map(function(p){
+    var mil=porPosto[p];
+    var linhas=Object.keys(mil).map(function(n){ return {nome:n,custo:mil[n].custo,qtd:mil[n].qtd}; })
+                 .sort(function(a,b){ return b.custo-a.custo; });
+    var rows=linhas.map(function(m,i){
+      return '<tr><td>'+(i+1)+'</td>'+
+        '<td><span class="di-mil-link" onclick="_diModalMilitar('+"'"+encodeURIComponent(m.nome)+"'"+')">'+_diEsc(m.nome)+'</span></td>'+
+        '<td style="text-align:center;">'+m.qtd+'</td>'+
+        '<td style="text-align:right;font-weight:700;color:#2F6B1E;">'+_diMoeda(m.custo)+'</td></tr>';
+    }).join('');
+    return '<div style="margin-bottom:14px;"><div class="di-top5-posto">'+_diEsc(p)+' ('+linhas.length+' militar(es))</div>'+
+      '<table class="di-full-tbl"><thead><tr><th>#</th><th>Nome</th><th style="text-align:center;">Qtd Diligências</th><th style="text-align:right;">Custo Total</th></tr></thead><tbody>'+rows+'</tbody></table></div>';
+  }).join('');
+}
+
+// ===== Modal: todas as diárias de um militar =====
+function _diModalMilitar(nomeEnc){
+  var nome=decodeURIComponent(nomeEnc);
+  var dados=window._DI_DADOS||[];
+  var doMil=dados.filter(function(d){ return (d.nome||'').trim()===nome; })
+                 .sort(function(a,b){ return _diNum(b.custo)-_diNum(a.custo); });
+  var totCusto=doMil.reduce(function(s,d){ return s+_diNum(d.custo); },0);
+  var body='';
+  if(!doMil.length){ body='<div class="sit-empty">Nenhuma diária encontrada.</div>'; }
+  else {
+    body='<table class="di-full-tbl"><thead><tr><th>Início</th><th>Destino</th><th>Tipo</th><th>Convênio</th><th>Nº Diárias</th><th style="text-align:right;">Custo</th></tr></thead><tbody>'+
+      doMil.map(function(d){
+        return '<tr><td>'+_diEsc(d.inicio)+'</td><td>'+_diEsc(d.destino)+'</td><td>'+_diEsc(d.tipoDilig)+'</td>'+
+          '<td>'+_diEsc(d.convenio)+'</td><td style="text-align:center;">'+_diEsc(d.numDiarias)+'</td>'+
+          '<td style="text-align:right;font-weight:700;">'+_diMoeda(_diNum(d.custo))+'</td></tr>';
+      }).join('')+'</tbody></table>';
+  }
+  document.getElementById('sit-modal-title-txt').textContent='Diárias de '+nome;
+  document.getElementById('sit-modal-count').textContent=doMil.length+' diária(s) · Total '+_diMoeda(totCusto);
+  document.getElementById('sit-modal-body').innerHTML=body;
+  document.getElementById('sit-modal-overlay').classList.add('open');
+}
+
+// ===== Card TOP 5 municípios mais visitados (por destino) =====
+function _diContaMunicipios(filt){
+  var m={}; filt.forEach(function(d){ var mun=(d.destino||'').trim()||'(sem destino)'; m[mun]=(m[mun]||0)+1; });
+  return Object.keys(m).map(function(k){ return {nome:k,qtd:m[k]}; }).sort(function(a,b){ return b.qtd-a.qtd; });
+}
+function _diMunicipios(filt){
+  var cont=document.getElementById('di-municipios-container'); if(!cont) return;
+  var lista=_diContaMunicipios(filt);
+  if(!lista.length){ cont.innerHTML='<div style="color:#9A8A5A;font-size:12px;padding:12px;">Sem dados.</div>'; return; }
+  var top5=lista.slice(0,5);
+  cont.innerHTML='<div class="di-top5-card" style="grid-column:1/-1;"><div class="di-top5-posto">TOP 5 — Municípios mais visitados</div>'+
+    top5.map(function(m,i){ return '<div class="di-top5-item"><span class="di-top5-nome"><span class="di-top5-rank">'+(i+1)+'</span>'+_diEsc(m.nome)+'</span><span class="di-top5-val">'+m.qtd+' diligência(s)</span></div>'; }).join('')+
+    '</div>';
+}
+window._diMunAberto=false;
+function _diToggleMunicipios(){
+  window._diMunAberto=!window._diMunAberto;
+  var full=document.getElementById('di-municipios-full'); var btn=document.getElementById('di-mun-btn');
+  if(window._diMunAberto){ full.style.display='block'; btn.textContent='▲ Recolher'; _diRenderMunicipiosFull(window._DI_FILT||[]); }
+  else { full.style.display='none'; btn.textContent='▼ Expandir e ver todos os municípios'; }
+}
+function _diRenderMunicipiosFull(filt){
+  var full=document.getElementById('di-municipios-full'); if(!full) return;
+  var lista=_diContaMunicipios(filt);
+  if(!lista.length){ full.innerHTML='<div style="color:#9A8A5A;font-size:12px;padding:12px;">Sem dados.</div>'; return; }
+  full.innerHTML='<table class="di-full-tbl"><thead><tr><th>#</th><th>Município (Destino)</th><th style="text-align:center;">Nº Diligências</th></tr></thead><tbody>'+
+    lista.map(function(m,i){ return '<tr><td>'+(i+1)+'</td><td>'+_diEsc(m.nome)+'</td><td style="text-align:center;font-weight:700;">'+m.qtd+'</td></tr>'; }).join('')+
+    '</tbody></table>';
+}
+
 function _diGraficos(filt){
   if(typeof Chart==='undefined') return;
   var MESES=['jan.','fev.','mar.','abr.','mai.','jun.','jul.','ago.','set.','out.','nov.','dez.'];
@@ -2103,9 +2265,25 @@ function _diGraficos(filt){
 }
 function renderizarDemandas(){
   var lista = ((DADOS && Array.isArray(DADOS.demandas)) ? DADOS.demandas : []).filter(function(d){ return d && String(d.material||'').trim().toUpperCase() !== 'MATERIAL / DEMANDA' && String(d.status||'').trim().toUpperCase() !== 'STATUS ATUAL'; });
+  // rank de grau: 1=Extremamente(0), 2=Necessário(1), 3=Não Prioritário(2)
+  var _rankGrau = function(g){ var u=(g==null?'':String(g)).toUpperCase(); if(u.indexOf('1')===0||u.indexOf('EXTREMAMENTE')>=0)return 0; if(u.indexOf('2')===0)return 1; if(u.indexOf('3')===0||u.indexOf('NAO PRIOR')>=0||u.indexOf('NÃO PRIOR')>=0)return 2; return 3; };
+  // total geral (antes do filtro) para o card
+  var _totalGeral = lista.length;
+  // aplica filtro de grau (se selecionado)
+  var _selGrau = (function(){ var el=document.getElementById('dem-filtro-grau'); return el?el.value:''; })();
+  if(_selGrau){ lista = lista.filter(function(d){ return String(_rankGrau(d.grauPrioridade)+1) === _selGrau; }); }
+  // ordena: extremamente necessária -> necessária -> não prioritária
+  lista = lista.slice().sort(function(a,b){ return _rankGrau(a.grauPrioridade)-_rankGrau(b.grauPrioridade); });
   var tb = document.getElementById('demandas-tbody');
   var tot = document.getElementById('demandas-total');
   if(tot) tot.textContent = lista.length + ' demanda(s)'; var _cardsEl = document.getElementById('demandas-cards'); if(_cardsEl){ var _nrm=function(s){return (s==null?'':String(s)).toUpperCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').trim();}; var _NOMESC=['DOD','3 Orçamentos','Garantia Orçamentária','ETP','Edital / Aviso','Publicação / Disponib.','Adjudicação / Homolog.']; var _ult=function(et){var last=-1; if(Array.isArray(et)){for(var k=0;k<7;k++){if(_nrm(et[k])==='CONCLUIDO')last=k;}} return last;}; window._SIT_LISTA=lista; window._SIT_NOMES=_NOMESC; window._SIT_ULT=_ult; var _cont=new Array(7).fill(0); var _naoIni=0; lista.forEach(function(d){var idx=_ult(d.etapas); if(idx<0)_naoIni++; else _cont[idx]++;}); _cardsEl.classList.remove('loading'); var _cards=[]; _cards.push('<div class="alerta-card et-zero" onclick="abrirModalSituacao(-1)"><div class="alerta-label"><span class="et-idx">0</span>Não iniciada</div><div class="alerta-num" style="color:#9A8A5A">'+_naoIni+'</div><div class="alerta-sub">demanda(s)</div></div>'); for(var k=0;k<7;k++){ _cards.push('<div class="alerta-card" onclick="abrirModalSituacao('+k+')"><div class="alerta-label"><span class="et-idx">'+(k+1)+'</span>'+_NOMESC[k]+'</div><div class="alerta-num" style="color:#3B6D11">'+_cont[k]+'</div><div class="alerta-sub">demanda(s)</div></div>'); } _cardsEl.innerHTML=_cards.join(''); }
+  // Card resumo: quantidade + valor total (reage ao filtro de grau)
+  (function(){
+    var _parseNum=function(v){ if(v==null||v==='')return 0; var n=Number(String(v).replace(/[^0-9,.-]/g,'').replace(/\./g,'').replace(',','.')); return isFinite(n)?n:0; };
+    var _somaVal=lista.reduce(function(s,d){ return s+_parseNum(d.prioridade); },0);
+    var _qEl=document.getElementById('dem-qtd-val'); if(_qEl){ _qEl.textContent = lista.length + (_selGrau ? ' de ' + _totalGeral : ''); }
+    var _vEl=document.getElementById('dem-valor-val'); if(_vEl){ _vEl.textContent = 'R$ '+_somaVal.toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2}); }
+  })();
   if(!tb) return;
   if(!lista.length){ tb.innerHTML = '<tr><td colspan="11" style="text-align:center;color:#888;padding:20px;">Nenhuma demanda cadastrada.</td></tr>'; return; }
   var esc = function(s){ return (s==null?'':String(s)).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); };
@@ -2187,7 +2365,13 @@ function renderizarDemandas(){
         '<td>'+dash(d.protocolo)+'</td>'+
         '<td>'+dash(d.data)+'</td>'+
         '<td>'+dash(d.origem)+'</td>'+
-        '<td>'+esc(d.status)+'</td>'+
+        '<td>'+(function(){
+          var et = Array.isArray(d.etapas)?d.etapas:[];
+          var _NOMESE=['DOD','3 Orçamentos','Garantia Orçamentária','ETP','Edital / Aviso','Publicação / Disponib.','Adjudicação / Homolog.'];
+          var atual=-1; for(var k=0;k<7;k++){ if(_normET(et[k])!=='CONCLUIDO'){ atual=k; break; } }
+          if(atual===-1) return '<span class="etapa-badge etapa-concl">CONCLUÍDO</span>';
+          return '<span class="etapa-badge etapa-curso">'+esc(_NOMESE[atual])+'</span>';
+        })()+'</td>'+
         '<td>'+_grauBadge(d.grauPrioridade)+'</td>'+
         '<td>'+_fmtValor(d.prioridade)+'</td>'+
         '<td>'+_prazoBadgeEtapa(d)+'</td>'+
