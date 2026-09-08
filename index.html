@@ -855,6 +855,14 @@ function logoutUI(){
   location.reload();
 }
 // ===== Gerência de usuários (admin) =====
+
+var NOMES_ABAS={visao:'Visão Geral',programacao:'Programação',contratos:'Contratos',repasses:'Repasses',sirconv:'Convênios SIRCONV',demandas:'Controle de Demandas',diarias:'Diárias',usuarios:'Gerência de Usuários'};
+function _seletorAbas(usuario){
+  return '<fieldset id="abas-'+_esc(usuario)+'" style="border:1px solid #D4CDB8;border-radius:6px;padding:12px;display:grid;grid-template-columns:repeat(2,minmax(150px,1fr));gap:12px;"><legend>Abas permitidas</legend>'+TODAS_ABAS.map(function(ab){
+    return '<label style="display:flex;align-items:center;gap:8px;cursor:pointer;"><input type="checkbox" value="'+ab+'">'+NOMES_ABAS[ab]+'</label>';
+  }).join('')+'</fieldset><small>Gerência de Usuários permite aprovar e remover usuários.</small>';
+}
+
 async function carregarUsuarios(){
   var cont=document.getElementById('usuarios-lista'); if(!cont) return;
   cont.innerHTML='<div class="loading" style="padding:20px;">Carregando...</div>';
@@ -869,19 +877,19 @@ async function carregarUsuarios(){
     html+='<div style="font-weight:800;color:#C0392B;margin:6px 0 8px;">Pendentes de aprovação ('+pend.length+')</div>';
     if(!pend.length){ html+='<div style="color:#999;font-size:13px;margin-bottom:14px;">Nenhum cadastro pendente.</div>'; }
     else {
-      html+='<table class="data-table" style="margin-bottom:18px;"><thead><tr><th>Número PM</th><th>Nome</th><th>Definir Perfil</th><th>Ação</th></tr></thead><tbody>';
+      html+='<table class="data-table" style="margin-bottom:18px;"><thead><tr><th>Número PM</th><th>Nome</th><th>Selecionar acesso</th><th>Ação</th></tr></thead><tbody>';
       pend.forEach(function(u){
         html+='<tr><td><strong>'+_esc(u.usuario)+'</strong></td><td>'+_esc(u.nome)+'</td>'+
-          '<td><select id="perf-'+_esc(u.usuario)+'" style="padding:5px;border:1px solid #ccc;border-radius:4px;"><option value="LOGISTICA">LOGISTICA</option><option value="DIARIAS">DIARIAS</option><option value="ADMIN">ADMIN</option></select></td>'+
+          '<td>'+_seletorAbas(u.usuario)+'</td>'+
           '<td><button onclick="aprovarUI(\''+_esc(u.usuario)+'\')" style="background:#2F6B1E;color:#fff;border:none;border-radius:5px;padding:6px 12px;font-weight:700;cursor:pointer;margin-right:6px;">Aprovar</button>'+
           '<button onclick="removerUI(\''+_esc(u.usuario)+'\')" style="background:#C0392B;color:#fff;border:none;border-radius:5px;padding:6px 12px;font-weight:700;cursor:pointer;">Rejeitar</button></td></tr>';
       });
       html+='</tbody></table>';
     }
     html+='<div style="font-weight:800;color:#2F6B1E;margin:6px 0 8px;">Usuários aprovados ('+aprov.length+')</div>';
-    html+='<table class="data-table"><thead><tr><th>Número PM</th><th>Nome</th><th>Perfil</th><th>Ação</th></tr></thead><tbody>';
+    html+='<table class="data-table"><thead><tr><th>Número PM</th><th>Nome</th><th>Abas permitidas</th><th>Ação</th></tr></thead><tbody>';
     aprov.forEach(function(u){
-      html+='<tr><td><strong>'+_esc(u.usuario)+'</strong></td><td>'+_esc(u.nome)+'</td><td><span class="grau-badge grau-2">'+_esc(u.perfil)+'</span></td>'+
+      html+='<tr><td><strong>'+_esc(u.usuario)+'</strong></td><td>'+_esc(u.nome)+'</td><td><span class="grau-badge grau-2">'+_esc((u.abas||[]).map(function(ab){return NOMES_ABAS[ab]||ab;}).join(' · '))+'</span></td>'+
         '<td>'+(u.usuario===SESSAO.usuario?'<span style="color:#999;font-size:12px;">(você)</span>':'<button onclick="removerUI(\''+_esc(u.usuario)+'\')" style="background:#C0392B;color:#fff;border:none;border-radius:5px;padding:5px 10px;font-weight:700;cursor:pointer;">Remover</button>')+'</td></tr>';
     });
     html+='</tbody></table>';
@@ -890,8 +898,10 @@ async function carregarUsuarios(){
 }
 function _esc(s){ return (s==null?'':String(s)).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/'/g,'&#39;'); }
 async function aprovarUI(usuario){
-  var perfil=(document.getElementById('perf-'+usuario)||{}).value||'LOGISTICA';
-  try{ var r=await fetch(_authURL({acao:'aprovar', usuario:usuario, perfil:perfil})); var j=await r.json(); if(j.ok) carregarUsuarios(); else alert(j.erro||'Erro'); }catch(e){ alert('Erro de conexão.'); }
+  var grupo=document.getElementById('abas-'+usuario);
+  var abas=Array.from(grupo.querySelectorAll('input:checked')).map(function(el){return el.value;});
+  if(!abas.length){alert('Selecione pelo menos uma aba para aprovar o usuário.');return;}
+  try{ var r=await fetch(_authURL({acao:'aprovar', usuario:usuario, abas:JSON.stringify(abas)})); var j=await r.json(); if(j.ok) carregarUsuarios(); else alert(j.erro||'Erro'); }catch(e){ alert('Erro de conexão.'); }
 }
 async function removerUI(usuario){
   if(!confirm('Remover o usuário '+usuario+'?')) return;
