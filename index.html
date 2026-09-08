@@ -265,6 +265,24 @@ body{font-family:'Segoe UI',Arial,sans-serif;background:#F0EDE0;color:#0A0A0A;fo
 #tab-content-diarias .di-full-tbl td{padding:5px 10px;border-bottom:1px solid #F0EDE0;}
 #tab-content-diarias .di-mil-link{color:#6B5B45;font-weight:700;cursor:pointer;text-decoration:underline;}
 #tab-content-diarias .di-mil-link:hover{color:#0A0A0A;}
+/* Detalhamento de diárias por militar */
+#sit-modal-overlay .sit-modal:has(.di-full-tbl){max-width:1000px;max-height:85vh;}
+#sit-modal-body:has(.di-full-tbl){padding:20px 24px 24px;overflow:auto;}
+#sit-modal-body .di-full-tbl{width:100%;min-width:760px;border-collapse:separate;border-spacing:0;font-size:13px;line-height:1.5;border:1px solid #D4CDB8;border-radius:8px;overflow:hidden;}
+#sit-modal-body .di-full-tbl th{background:#3B4A22;color:#fff;padding:14px 18px;text-align:left;font-size:11px;text-transform:uppercase;letter-spacing:.3px;white-space:nowrap;}
+#sit-modal-body .di-full-tbl td{padding:15px 18px;border-bottom:1px solid #E7E0CE;vertical-align:middle;color:#3a3730;}
+#sit-modal-body .di-full-tbl th+th,#sit-modal-body .di-full-tbl td+td{border-left:1px solid #E7E0CE;}
+#sit-modal-body .di-full-tbl tbody tr:nth-child(even){background:#FBF9F2;}
+#sit-modal-body .di-full-tbl tbody tr:hover{background:#F3EEDF;}
+#sit-modal-body .di-full-tbl tbody tr:last-child td{border-bottom:0;}
+#sit-modal-body .di-full-tbl th:first-child,#sit-modal-body .di-full-tbl td:first-child{white-space:nowrap;}
+#sit-modal-body .di-full-tbl th:nth-child(5),#sit-modal-body .di-full-tbl td:nth-child(5){text-align:center;white-space:nowrap;}
+#sit-modal-body .di-full-tbl th:last-child,#sit-modal-body .di-full-tbl td:last-child{text-align:right;white-space:nowrap;font-variant-numeric:tabular-nums;}
+@media(max-width:640px){
+  #sit-modal-overlay:has(.di-full-tbl){padding:12px;}
+  #sit-modal-body:has(.di-full-tbl){padding:12px;}
+  #sit-modal-overlay .sit-modal:has(.di-full-tbl) .sit-modal-head{padding:16px;gap:16px;}
+}
 </style>
 </head>
 <body>
@@ -2332,25 +2350,34 @@ function _diRenderTop5Full(filt){
 function _diModalMilitar(nomeEnc){
   var nome=decodeURIComponent(nomeEnc);
   var dados=window._DI_DADOS||[];
-  var doMil=dados.filter(function(d){ return (d.nome||'').trim()===nome; })
-                 .sort(function(a,b){ return _diNum(b.custo)-_diNum(a.custo); });
-  var totCusto=doMil.reduce(function(s,d){ return s+_diNum(d.custo); },0);
-  var body='';
-  if(!doMil.length){ body='<div class="sit-empty">Nenhuma diária encontrada.</div>'; }
-  else {
-    body='<table class="di-full-tbl"><thead><tr><th>Início</th><th>Destino</th><th>Tipo</th><th>Convênio</th><th>Nº Diárias</th><th style="text-align:right;">Custo</th></tr></thead><tbody>'+
-      doMil.map(function(d){
-        return '<tr><td>'+_diEsc(d.inicio)+'</td><td>'+_diEsc(d.destino)+'</td><td>'+_diEsc(d.tipoDilig)+'</td>'+
-          '<td>'+_diEsc(d.convenio)+'</td><td style="text-align:center;">'+_diEsc(d.numDiarias)+'</td>'+
-          '<td style="text-align:right;font-weight:700;">'+_diMoeda(_diNum(d.custo))+'</td></tr>';
-      }).join('')+'</tbody></table>';
+  var doMil=dados.filter(function(d){return (d.nome||'').trim()===nome;})
+    .sort(function(a,b){return _diNum(b.custo)-_diNum(a.custo);});
+  var totCusto=doMil.reduce(function(s,d){return s+_diNum(d.custo);},0);
+  var cell='padding:14px 18px;border:1px solid #E7E0CE;white-space:nowrap;';
+  var head=cell+'background:#3B4A22;color:#fff;text-align:left;font-size:12px;';
+  var body='<div class="sit-empty">Nenhuma diária encontrada.</div>';
+  if(doMil.length){
+    body='<div style="width:100%;overflow-x:auto;"><table aria-label="Diárias do militar" style="width:100%;min-width:820px;border-collapse:collapse;font-family:Segoe UI,Arial,sans-serif;font-size:13px;line-height:1.5;"><thead><tr>'+
+      ['Início','Destino','Tipo','Convênio','Nº Diárias','Custo'].map(function(t,i){
+        return '<th scope="col" style="'+head+(i===5?'text-align:right;':i===4?'text-align:center;':'')+'">'+t+'</th>';
+      }).join('')+'</tr></thead><tbody>'+
+      doMil.map(function(d,i){
+        return '<tr style="background:'+(i%2?'#FBF9F2':'#FFFFFF')+';">'+
+          '<td style="'+cell+'">'+_diEsc(d.inicio)+'</td>'+
+          '<td style="'+cell+'">'+_diEsc(d.destino)+'</td>'+
+          '<td style="'+cell+'">'+_diEsc(d.tipoDilig)+'</td>'+
+          '<td style="'+cell+'">'+_diEsc(d.convenio)+'</td>'+
+          '<td style="'+cell+'text-align:center;">'+_diEsc(d.numDiarias)+'</td>'+
+          '<td style="'+cell+'text-align:right;font-weight:700;">'+_diMoeda(_diNum(d.custo))+'</td></tr>';
+      }).join('')+'</tbody></table></div>';
   }
   document.getElementById('sit-modal-title-txt').textContent='Diárias de '+nome;
   document.getElementById('sit-modal-count').textContent=doMil.length+' diária(s) · Total '+_diMoeda(totCusto);
   document.getElementById('sit-modal-body').innerHTML=body;
+  document.querySelector('#sit-modal-overlay .sit-modal').style.maxWidth='1040px';
+  document.getElementById('sit-modal-body').style.padding='20px 24px 24px';
   document.getElementById('sit-modal-overlay').classList.add('open');
 }
-
 // ===== Card TOP 5 municípios mais visitados (por destino) =====
 function _diContaMunicipios(filt){
   var m={}; filt.forEach(function(d){ var mun=(d.destino||'').trim()||'(sem destino)'; m[mun]=(m[mun]||0)+1; });
