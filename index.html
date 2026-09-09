@@ -336,7 +336,7 @@ body.cpe-layout-teste{background:#F0EDE0;color:#0A0A0A;font-family:'Segoe UI',Ar
     <h1>Gestão à Vista CPE</h1>
   </div>
   <div class="top-bar-right">
-    <button class="btn-atualizar" onclick="carregarDados()">⟳ Atualizar Dados</button>
+    <button class="btn-atualizar" onclick="carregarDados(true)">⟳ Atualizar Dados</button>
     <div class="atualizado" id="ultima-atualizacao">Carregando...</div>
   </div>
 </div>
@@ -1025,7 +1025,13 @@ function carregarJSONP(url, timeoutMs = 45000) {
       });
   });
 }
-async function carregarDados() {
+var _cpeConsulta=null;
+function carregarDados(forcar){
+  if(_cpeConsulta)return _cpeConsulta;
+  _cpeConsulta=_carregarDadosInterno(forcar).finally(function(){_cpeConsulta=null;});
+  return _cpeConsulta;
+}
+async function _carregarDadosInterno(forcar) {
   const status = document.getElementById('status-bar');
   const atualizado = document.getElementById('ultima-atualizacao');
 
@@ -1037,7 +1043,7 @@ async function carregarDados() {
   if (!DADOS.contratos || DADOS.contratos.length === 0) DADOS.contratos = JSON.parse(JSON.stringify(DADOS_FIXOS.contratos));
 
   try {
-    const dados = await carregarJSONP(APPS_SCRIPT_URL);
+    const dados = await carregarJSONP(APPS_SCRIPT_URL+(forcar?'?forcar=1':''));
 
     if (!dados || typeof dados !== 'object') {
       throw new Error('O Apps Script não retornou um objeto de dados válido.');
@@ -1062,14 +1068,13 @@ async function carregarDados() {
     renderizarProgramacao();
     renderizarSirconv();
     renderizarDemandas();
-    if (typeof gerarGraficosDemandasSituacao === 'function') gerarGraficosDemandasSituacao();
     if (typeof renderizarDiarias === 'function') renderizarDiarias();
 
     const parcial = dados.ok === false;
     if (status) {
       status.textContent = parcial
         ? '⚠ Dados ao vivo carregados, mas o Apps Script informou erro em uma ou mais abas.'
-        : '✓ Dados sincronizados AO VIVO com as planilhas Google Sheets';
+        : (dados.cache ? '✓ Dados em cache (até 2 minutos). Atualizar Dados consulta as planilhas.' : '✓ Dados consultados nas planilhas Google Sheets');
     }
     if (atualizado) atualizado.textContent = 'Sincronizado: ' + (dados.atualizado || new Date().toLocaleString('pt-BR'));
 
