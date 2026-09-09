@@ -772,7 +772,7 @@ body .sit-modal-close{font-size:19px!important;}
       <span class="tit">Contratos com Etiquetas de Vigência</span>
       <span class="tot" id="total-contratos-label">Carregando...</span>
     </div>
-    <div style="overflow-x:auto;"><table class="data-table"><thead><tr><th>Status</th><th>Dias</th><th>Elem.</th><th>Empresa</th><th>Objeto</th><th>Fim Vigência</th><th>Valor Total</th><th>Empenhado</th><th>A Empenhar</th><th>% Pago</th></tr></thead><tbody id="tbody-contratos"><tr><td colspan="10" style="text-align:center;padding:20px;">Carregando...</td></tr></tbody></table></div>
+    <div style="overflow-x:auto;"><table class="data-table"><thead><tr><th>Status</th><th>Dias</th><th>Elem.</th><th>Fonte Pagadora</th><th>Empresa</th><th>Objeto</th><th>Fim Vigência</th><th>Valor Total</th><th>Empenhado</th><th>A Empenhar</th><th>% Pago</th></tr></thead><tbody id="tbody-contratos"><tr><td colspan="11" style="text-align:center;padding:20px;">Carregando...</td></tr></tbody></table></div>
   </div>
 </div>
 
@@ -1422,7 +1422,7 @@ function aplicarDadosAppsScript(dados) {
       let status = !temData ? 'VIGENTE' : dias<0 ? 'VENCIDO' : dias<=30 ? '30D' : dias<=60 ? '60D' : dias<=90 ? '90D' : 'VIGENTE';
       const saldoEmp = (typeof ct.saldoEmp==='number') ? ct.saldoEmp : parseNum(ct.saldoEmp);
       const executado = Math.max(0, emp - saldoEmp); // pago = empenhado - saldo de empenho
-      lista.push({ fonte:ct.fonte||ct.fonteRecurso||ct.convenio||'', elem:ct.elem, empresa, objeto:ct.objeto||'', fim_str, dias:temData?dias:999, status, total, emp, saldoEmp, executado, aEmp: Math.max(0,total-emp) });
+      lista.push({ fonte:ct.fonte||ct.fontePagadora||ct.fonteRecurso||ct.convenio||'', elem:ct.elem, empresa, objeto:ct.objeto||'', fim_str, dias:temData?dias:999, status, total, emp, saldoEmp, executado, aEmp: Math.max(0,total-emp) });
     });
     if (lista.length > 0) { lista.sort((a,b)=>a.dias-b.dias); DADOS.contratos = lista; }
   }
@@ -1997,8 +1997,8 @@ function renderizarContratos() {
   const semFonte=(DADOS.contratos||[]).filter(c=>!fonteContrato(c.fonte).length).length;
   const aviso=document.createElement('div');aviso.id='contratos-aviso-fonte';aviso.style.cssText='padding:10px 14px;font-size:12px;color:#6B5B45';
   const anterior=document.getElementById(aviso.id);if(anterior)anterior.remove();
-  if(_cobFonte!=='todas'&&semFonte){aviso.textContent=semFonte+' contrato(s) sem fonte identificada não entram neste filtro. Confira a coluna Fonte na planilha CONTRATOS.';tbody.closest('.table-card').prepend(aviso);}
-  if(!contratos.length)tbody.innerHTML='<tr><td colspan="10" style="padding:20px;text-align:center">Nenhum contrato encontrado para os filtros selecionados.</td></tr>';
+  if(_cobFonte!=='todas'&&semFonte){aviso.textContent=semFonte+' contrato(s) sem fonte identificada não entram neste filtro. Confira a coluna Fonte Pagadora na planilha CONTRATOS.';tbody.closest('.table-card').prepend(aviso);}
+  if(!contratos.length)tbody.innerHTML='<tr><td colspan="11" style="padding:20px;text-align:center">Nenhum contrato encontrado para os filtros selecionados.</td></tr>';
 
   contratos.forEach(c => {
     let badge, badgeCls, corDias;
@@ -2019,7 +2019,7 @@ function renderizarContratos() {
     const tr = document.createElement('tr');
     tr.innerHTML = `<td><span class="badge ${badgeCls}">${badge}</span></td>
       <td style="color:${corDias};font-weight:600">${dias_str}</td>
-      <td title="${elemLabel(c.elem)}" style="cursor:help">${c.elem}</td><td style="font-size:11px">${c.empresa.substring(0,45)}</td>
+      <td title="${elemLabel(c.elem)}" style="cursor:help">${c.elem}</td><td style="font-size:11px;white-space:nowrap">${_esc(c.fonte||'Não informada')}</td><td style="font-size:11px">${c.empresa.substring(0,45)}</td>
       <td style="font-size:11px;color:#9A8A5A">${obj}</td>
       <td>${c.fim_str||'-'}</td><td>${BRL(c.total)}</td><td>${emp_str}</td>
       <td style="color:#a32d2d;font-weight:600">${BRL(c.aEmp)}</td>
