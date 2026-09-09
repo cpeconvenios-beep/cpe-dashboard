@@ -336,6 +336,43 @@ body #demandas-cards .alerta-card .alerta-sub{
 }
 body #demandas-cards .et-idx{flex-shrink:0;}
 </style>
+<style id="cpe-cabecalho-profissional">
+body .top-bar{
+  display:flex;align-items:center;justify-content:flex-start;
+  gap:18px;padding:14px 24px;min-height:112px;
+}
+body .top-bar .top-bar-logo{
+  width:82px;height:82px;flex:0 0 82px;
+}
+body .top-bar .top-bar-logo img{
+  width:82px;height:82px;object-fit:contain;
+  filter:drop-shadow(0 3px 4px rgba(0,0,0,.35));
+}
+body .top-bar .top-bar-title{
+  flex:0 1 auto;text-align:left;min-width:0;
+}
+body .top-bar .top-bar-title .sub{
+  font-family:'Segoe UI',Arial,sans-serif;
+  font-size:11px;font-weight:600;line-height:1.5;
+  letter-spacing:1.2px;color:#BBA96A;margin-bottom:5px;
+}
+body .top-bar .top-bar-title h1{
+  font-family:'Segoe UI Variable Display','Segoe UI',Arial,sans-serif;
+  font-size:29px;font-weight:650;line-height:1.2;
+  letter-spacing:-.5px;color:#fff;
+  text-shadow:0 2px 3px rgba(0,0,0,.55),0 1px 8px rgba(187,169,106,.18);
+}
+body .top-bar .top-bar-right{margin-left:auto;flex-shrink:0;}
+@media(max-width:700px){
+  body .top-bar{padding:12px 16px;gap:12px;flex-wrap:wrap;}
+  body .top-bar .top-bar-logo,body .top-bar .top-bar-logo img{width:68px;height:68px;}
+  body .top-bar .top-bar-logo{flex-basis:68px;}
+  body .top-bar .top-bar-title{flex:1;}
+  body .top-bar .top-bar-title h1{font-size:23px;}
+  body .top-bar .top-bar-title .sub{font-size:9px;letter-spacing:.6px;}
+  body .top-bar .top-bar-right{margin-left:0;flex-basis:100%;text-align:left;}
+}
+</style>
 </head>
 <body>
 <!-- ===================== TELA DE LOGIN ===================== -->
