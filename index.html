@@ -289,6 +289,53 @@ body.cpe-layout-teste{background:#F0EDE0;color:#0A0A0A;font-family:'Segoe UI',Ar
 
 @media(max-width:900px){body.cpe-layout-teste .convenio-row{grid-template-columns:1fr;}body.cpe-layout-teste .tab-content{padding:16px;}body.cpe-layout-teste .top-bar{flex-wrap:wrap;}}
 </style>
+<style>
+.recebido-painel{display:flex;align-items:center;gap:22px;flex-wrap:wrap;padding:8px 0;}
+.recebido-rosca{position:relative;width:160px;height:160px;flex:0 0 160px;}
+.recebido-centro{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;pointer-events:none;color:#0A0A0A;font-size:12px;line-height:1.3;}
+.recebido-centro strong{font-size:13px;}
+.recebido-legenda{flex:1;min-width:180px;border-left:1px solid #D4CDB8;padding:10px 0 10px 20px;display:grid;gap:22px;}
+.recebido-item{display:flex;align-items:flex-start;gap:10px;font-size:13px;color:#0A0A0A;}
+.recebido-item i{width:16px;height:16px;border-radius:50%;flex:none;margin-top:2px;}
+.recebido-item strong{display:block;font-size:13px;margin-bottom:4px;}
+.recebido-item span{display:block;font-variant-numeric:tabular-nums;line-height:1.5;}
+#filtro-recebido{gap:8px;}
+#filtro-recebido button{border-radius:999px!important;padding:5px 16px;background:#fff;color:#0A0A0A;border:1px solid #D4CDB8;}
+#filtro-recebido button.ativo{background:#9A8A5A;color:#fff;border-color:#9A8A5A;}
+</style>
+<style id="cpe-resumo-situacao-compacto">
+/* Oito etapas em uma linha; detalhes expandidos continuam abaixo dos cards. */
+body #demandas-cards{
+  grid-template-columns:repeat(8,minmax(125px,1fr));
+  gap:8px;
+  overflow-x:auto;
+  padding-bottom:6px;
+}
+body #demandas-cards .alerta-card{
+  min-width:0;
+  min-height:82px;
+  padding:10px;
+  border-radius:10px;
+}
+body #demandas-cards .alerta-card .alerta-label{
+  font-size:9px;
+  line-height:1.35;
+  letter-spacing:0;
+  min-height:25px;
+  align-items:flex-start;
+  overflow-wrap:anywhere;
+}
+body #demandas-cards .alerta-card .alerta-num{
+  font-size:21px;
+  line-height:1.1;
+  margin:3px 0;
+}
+body #demandas-cards .alerta-card .alerta-sub{
+  font-size:9px;
+  margin-top:2px;
+}
+body #demandas-cards .et-idx{flex-shrink:0;}
+</style>
 </head>
 <body>
 <!-- ===================== TELA DE LOGIN ===================== -->
@@ -383,10 +430,15 @@ body.cpe-layout-teste{background:#F0EDE0;color:#0A0A0A;font-family:'Segoe UI',Ar
         <button onclick="filtrarRecebido('DER',this)">DER</button>
         <button onclick="filtrarRecebido('SEMAD',this)">SEMAD</button>
       </div>
-      <div class="chart-wrap"><canvas id="chartRecebidoTotal"></canvas></div>
-      <div class="chart-legend">
-        <span><span class="leg-sq" style="background:#0A0A0A"></span>Recebido</span>
-        <span><span class="leg-sq" style="background:#BBA96A"></span>A Receber</span>
+      <div class="recebido-painel">
+        <div class="recebido-rosca">
+          <canvas id="chartRecebidoTotal" role="img" aria-label="Distribuição de valores recebidos e a receber"></canvas>
+          <div class="recebido-centro"><strong id="recebido-centro-valor"></strong><span>Recebido</span><strong id="recebido-centro-pct"></strong></div>
+        </div>
+        <div class="recebido-legenda" aria-live="polite">
+          <div class="recebido-item"><i style="background:#BBA96A"></i><div><strong>Recebido</strong><span id="recebido-legenda-valor"></span></div></div>
+          <div class="recebido-item"><i style="background:#0A0A0A"></i><div><strong>A Receber</strong><span id="recebido-legenda-restante"></span></div></div>
+        </div>
       </div>
     </div>
   </div>
@@ -1497,10 +1549,19 @@ function desenharChartRecebido(fonte) {
     aReceber = aReceberFonte(fd);
   }
   if (aReceber < 0) aReceber = 0;
+  const total=recebido+aReceber;
+  const pct=total>0?recebido/total*100:0;
+  const restante=total>0?aReceber/total*100:0;
+  const percentual=n=>n.toLocaleString('pt-BR',{minimumFractionDigits:1,maximumFractionDigits:1})+'%';
+  const compacto=recebido>=1e6?'R$ '+(recebido/1e6).toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2})+'M':BRL(recebido);
+  document.getElementById('recebido-centro-valor').textContent=compacto;
+  document.getElementById('recebido-centro-pct').textContent=percentual(pct);
+  document.getElementById('recebido-legenda-valor').textContent=BRL(recebido)+' ('+percentual(pct)+')';
+  document.getElementById('recebido-legenda-restante').textContent=BRL(aReceber)+' ('+percentual(restante)+')';
   destroyChart('chartRecebidoTotal');
   chartInstances['chartRecebidoTotal'] = new Chart(document.getElementById('chartRecebidoTotal'),{
     type:'doughnut',
-    data:{labels:['Recebido','A Receber'],datasets:[{data:[recebido,aReceber],backgroundColor:['#0A0A0A','#BBA96A'],borderWidth:2,borderColor:'#F0EDE0'}]},
+    data:{labels:['Recebido','A Receber'],datasets:[{data:[recebido,aReceber],backgroundColor:['#BBA96A','#0A0A0A'],borderWidth:0}]},
     options:{responsive:true,maintainAspectRatio:false,cutout:'65%',plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>c.label+': '+BRL(c.raw)}}}}
   });
 }
