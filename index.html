@@ -373,6 +373,123 @@ body .top-bar .top-bar-right{margin-left:auto;flex-shrink:0;}
   body .top-bar .top-bar-right{margin-left:0;flex-basis:100%;text-align:left;}
 }
 </style>
+<style id="cpe-graficos-ampliados">
+.recebido-painel,.situacao-distribuicao{
+  display:flex;align-items:center;justify-content:center;
+  gap:clamp(20px,3vw,48px);flex-wrap:wrap;
+  min-height:300px;padding:16px 0;width:100%;
+}
+.recebido-rosca,.situacao-rosca{
+  position:relative;width:clamp(220px,20vw,310px);
+  height:clamp(220px,20vw,310px);
+  flex:0 0 clamp(220px,20vw,310px);
+}
+.recebido-centro{font-size:14px;line-height:1.5;}
+.recebido-centro strong{font-size:17px;}
+.recebido-legenda{
+  flex:1 1 200px;max-width:360px;min-width:180px;
+  padding:24px 0 24px 24px;gap:30px;
+}
+.recebido-item,.recebido-item strong{font-size:14px;}
+.recebido-item span{font-size:14px;}
+.situacao-legenda{flex:1 1 240px;max-width:380px;display:grid;gap:14px;}
+.situacao-legenda-item{display:grid;grid-template-columns:12px 1fr auto;gap:10px;align-items:center;font-size:12px;line-height:1.4;}
+.situacao-legenda-item i{width:10px;height:10px;border-radius:50%;}
+.situacao-legenda-item strong{white-space:nowrap;font-variant-numeric:tabular-nums;font-size:12px;}
+@media(max-width:600px){
+ .recebido-painel,.situacao-distribuicao{gap:20px;min-height:0;}
+ .recebido-rosca,.situacao-rosca{width:230px;height:230px;flex-basis:230px;}
+ .recebido-legenda{border-left:0;padding:12px 0;flex-basis:100%;}
+ .situacao-legenda{flex-basis:100%;max-width:none;}
+}
+</style>
+<style id="cpe-saldos-linha-unica">
+body #saldo-cards{
+  grid-template-columns:repeat(5,minmax(180px,1fr));
+  gap:10px;overflow-x:auto;padding-bottom:6px;
+}
+body #saldo-cards > .kpi-card{
+  min-width:0;padding:14px 16px;border-radius:10px;
+}
+body #saldo-cards > .kpi-card .label{
+  font-size:10px;line-height:1.4;letter-spacing:.15px;
+  padding-right:12px;margin-bottom:7px;
+}
+body #saldo-cards > .kpi-card .value{
+  font-size:clamp(17px,1.35vw,22px);line-height:1.2;
+  white-space:nowrap;font-variant-numeric:tabular-nums;
+}
+body #saldo-cards > .kpi-card .sub{
+  font-size:11px;line-height:1.4;margin-top:6px;
+}
+body #saldo-cards > .detalhe-painel{grid-column:1/-1;}
+</style>
+<style id="cpe-interface-compacta">
+body{font-size:12px;}
+body .top-bar{min-height:88px;padding:10px 20px;gap:14px;}
+body .top-bar .top-bar-logo{width:64px;height:64px;flex-basis:64px;}
+body .top-bar .top-bar-logo img{width:64px;height:64px;}
+body .top-bar .top-bar-title h1{font-size:24px;letter-spacing:-.3px;}
+body .top-bar .top-bar-title .sub{font-size:10px;letter-spacing:.8px;margin-bottom:3px;}
+body .top-bar .btn-atualizar{font-size:11px;padding:7px 11px;}
+body .tabs-bar{padding:7px 16px;gap:4px;}
+body .tabs-bar .tab-btn{padding:8px 10px;font-size:11px;border-radius:8px;}
+body .tab-icon{font-size:12px;}
+body .tab-content{padding:18px;}
+body .section-header{margin:4px 0 10px;}
+body .section-header h2{font-size:15px;}
+body .section-divider{margin:18px 0;}
+body .kpi-row,body .convenio-row,body .charts-row,body .alerta-row,body .repasse-row{gap:12px;}
+body .kpi-card,body .repasse-card,body .alerta-card{padding:12px 14px;border-radius:9px;}
+body .kpi-card .label{font-size:10px;letter-spacing:.15px;margin-bottom:5px;}
+body .kpi-card .value{font-size:20px;}
+body .kpi-card .sub{font-size:10px;margin-top:4px;}
+body .convenio-card{padding:15px;border-radius:10px;}
+body .convenio-card .fonte-label{font-size:11px;}
+body .convenio-card .convenio-value{font-size:21px;margin:3px 0 9px;}
+body .convenio-card .detail-line{font-size:11px;line-height:1.55;margin-bottom:3px;}
+body .convenio-card .saldo-destaque{padding:10px;margin:12px 0;border-radius:8px;}
+body .convenio-card .saldo-destaque-lbl{font-size:10px;}
+body .convenio-card .saldo-destaque-val{font-size:21px;color:#2F6B1E!important;}
+body .convenio-card .elem-line{font-size:11px;line-height:1.5;}
+body .chart-card,body .full-chart-card{padding:15px;border-radius:10px;}
+body .chart-title,body .chart-card .chart-title{font-size:10px;margin-bottom:10px;}
+body .chart-filtro button,body #filtro-recebido button{font-size:10px;padding:4px 11px;}
+body .filter-row{padding:12px 14px;gap:12px;}
+body .filter-group label{font-size:10px;}
+body .filter-group select{padding:7px 10px;font-size:12px;min-width:140px;}
+body .data-table th{font-size:10px;padding:9px 12px;}
+body .data-table td{font-size:11px;padding:9px 12px;}
+body .badge,body .grau-badge,body .prazo-badge{font-size:9px;padding:3px 7px;}
+body .alerta-card .alerta-num{font-size:25px;}
+body #usuarios-lista button{font-size:11px;padding:7px 10px!important;}
+body #tab-content-diarias .di-card{padding:12px;border-radius:9px;}
+body #tab-content-diarias .di-card .di-card-num{font-size:20px;}
+body #tab-content-diarias .di-campo input,body #tab-content-diarias .di-campo select{font-size:11px;padding:7px 9px;}
+body #tab-content-diarias table.di-tbl thead th{font-size:10px;padding:9px;}
+body #tab-content-diarias table.di-tbl tbody td{font-size:11px;padding:8px 9px;}
+body .sit-modal-head{padding:15px 18px;}
+body .sit-modal-title{font-size:14px;}
+body .sit-modal-title small{font-size:11px;}
+body .sit-modal-close{font-size:20px;}
+body .recebido-centro{font-size:12px;}
+body .recebido-centro strong{font-size:15px;}
+body .recebido-item,body .recebido-item strong,body .recebido-item span{font-size:12px;}
+body .recebido-item i{width:12px;height:12px;}
+body .situacao-legenda-item,body .situacao-legenda-item strong{font-size:11px;}
+body .leg-sq{width:8px;height:8px;}
+body #saldo-cards{grid-template-columns:repeat(5,minmax(170px,1fr));gap:10px;}
+body #saldo-cards > .kpi-card{padding:12px;}
+body #saldo-cards > .kpi-card .value{font-size:clamp(16px,1.2vw,20px);}
+body #saldo-cards > .kpi-card .sub{font-size:10px;}
+body #demandas-cards .alerta-card{padding:8px;min-height:74px;}
+body #demandas-cards .alerta-card .alerta-num{font-size:19px;}
+@media(max-width:700px){
+ body .top-bar{padding:10px 14px;}
+ body .top-bar .top-bar-title h1{font-size:21px;}
+ body .tab-content{padding:12px;}
+}
+</style>
 </head>
 <body>
 <!-- ===================== TELA DE LOGIN ===================== -->
@@ -728,7 +845,7 @@ body .top-bar .top-bar-right{margin-left:auto;flex-shrink:0;}
     </div>
     <div class="chart-card">
       <div class="chart-title">Percentual por Situação</div>
-      <div class="chart-wrap" style="height:220px"><canvas id="chartDemandasPorcentagem"></canvas></div>
+      <div class="situacao-distribuicao"><div class="situacao-rosca"><canvas id="chartDemandasPorcentagem"></canvas></div><div id="situacao-legenda" class="situacao-legenda"></div></div>
     </div>
   </div>
 
@@ -2957,13 +3074,27 @@ function gerarGraficosDemandasSituacao() {
     });
   }
 
+  const legendaSituacao=document.getElementById('situacao-legenda');
+  if(legendaSituacao){
+    legendaSituacao.replaceChildren();
+    const somaSituacao=valores.reduce((s,v)=>s+v,0);
+    labels.forEach(function(label,i){
+      const linha=document.createElement('div');
+      linha.className='situacao-legenda-item';
+      const cor=document.createElement('i');cor.style.backgroundColor=_bg[i];
+      const nome=document.createElement('span');nome.textContent=label;
+      const valor=document.createElement('strong');
+      valor.textContent=valores[i]+' · '+(somaSituacao?valores[i]/somaSituacao*100:0).toLocaleString('pt-BR',{maximumFractionDigits:1})+'%';
+      linha.append(cor,nome,valor);legendaSituacao.appendChild(linha);
+    });
+  }
   const donut = document.getElementById('chartDemandasPorcentagem');
   if (donut) {
     destroyChart('chartDemandasPorcentagem');
     chartInstances['chartDemandasPorcentagem'] = new Chart(donut, {
       type:'doughnut',
       data:{labels:labels,datasets:[{data:valores,backgroundColor:_bg,borderColor:'#fff',borderWidth:2}]},
-      options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'bottom',labels:{font:{size:9},padding:6,boxWidth:10,color:'#555'}},tooltip:{callbacks:{label:function(ctx){
+      options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:function(ctx){
         const total = ctx.dataset.data.reduce((a,b)=>a+b,0);
         const valor = Number(ctx.parsed||0);
         const pct = total ? (valor/total*100).toFixed(1) : '0.0';
