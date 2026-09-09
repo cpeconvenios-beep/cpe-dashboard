@@ -1422,7 +1422,7 @@ function aplicarDadosAppsScript(dados) {
       let status = !temData ? 'VIGENTE' : dias<0 ? 'VENCIDO' : dias<=30 ? '30D' : dias<=60 ? '60D' : dias<=90 ? '90D' : 'VIGENTE';
       const saldoEmp = (typeof ct.saldoEmp==='number') ? ct.saldoEmp : parseNum(ct.saldoEmp);
       const executado = Math.max(0, emp - saldoEmp); // pago = empenhado - saldo de empenho
-      lista.push({ elem:ct.elem, empresa, objeto:ct.objeto||'', fim_str, dias:temData?dias:999, status, total, emp, saldoEmp, executado, aEmp: Math.max(0,total-emp) });
+      lista.push({ fonte:ct.fonte||ct.fonteRecurso||ct.convenio||'', elem:ct.elem, empresa, objeto:ct.objeto||'', fim_str, dias:temData?dias:999, status, total, emp, saldoEmp, executado, aEmp: Math.max(0,total-emp) });
     });
     if (lista.length > 0) { lista.sort((a,b)=>a.dias-b.dias); DADOS.contratos = lista; }
   }
@@ -1898,8 +1898,13 @@ function atualizarGraficoElemento() {
 // ============================================================
 // RENDERIZAR CONTRATOS
 // ============================================================
+function fonteContrato(v){
+ const s=String(v||'').toUpperCase();
+ return ['DPRF','DER','SEMAD'].filter(function(f,i){return s.includes(f)||s.includes(['73.10','83.20','52.20'][i]);});
+}
+function contratosFiltrados(){return (DADOS.contratos||[]).filter(c=>( _cobElem==='todos'||String(parseInt(c.elem))===String(_cobElem))&&(_cobFonte==='todas'||fonteContrato(c.fonte).includes(_cobFonte))).slice().sort((a,b)=>a.dias-b.dias);}
 function renderizarContratos() {
-  const contratos = DADOS.contratos || [];
+  const contratos = contratosFiltrados();
   const hoje = new Date();
 
   const vencidos  = contratos.filter(c=>c.status==='VENCIDO').length;
@@ -1989,6 +1994,12 @@ function renderizarContratos() {
 
   const tbody = document.getElementById('tbody-contratos');
   tbody.innerHTML = '';
+  const semFonte=(DADOS.contratos||[]).filter(c=>!fonteContrato(c.fonte).length).length;
+  const aviso=document.createElement('div');aviso.id='contratos-aviso-fonte';aviso.style.cssText='padding:10px 14px;font-size:12px;color:#6B5B45';
+  const anterior=document.getElementById(aviso.id);if(anterior)anterior.remove();
+  if(_cobFonte!=='todas'&&semFonte){aviso.textContent=semFonte+' contrato(s) sem fonte identificada não entram neste filtro. Confira a coluna Fonte na planilha CONTRATOS.';tbody.closest('.table-card').prepend(aviso);}
+  if(!contratos.length)tbody.innerHTML='<tr><td colspan="10" style="padding:20px;text-align:center">Nenhum contrato encontrado para os filtros selecionados.</td></tr>';
+
   contratos.forEach(c => {
     let badge, badgeCls, corDias;
     if (c.status==='VENCIDO'){badge='VENCIDO';badgeCls='badge-vencido';corDias='#7a0c1f';}
@@ -2029,13 +2040,13 @@ function setCobFonte(fonte, btn) {
   _cobFonte = fonte;
   document.querySelectorAll('#filtro-cob-fonte button').forEach(b=>b.classList.remove('ativo'));
   if (btn) btn.classList.add('ativo');
-  renderizarCobertura();
+  renderizarContratos();
 }
 function setCobElem(elem, btn) {
   _cobElem = elem;
   document.querySelectorAll('#filtro-cob-elem button').forEach(b=>b.classList.remove('ativo'));
   if (btn) btn.classList.add('ativo');
-  renderizarCobertura();
+  renderizarContratos();
 }
 
 // Cria os botões de elemento dinamicamente (com base nos contratos existentes)
@@ -2053,7 +2064,7 @@ function popularFiltroElementosCobertura() {
 // Calcula e exibe a cobertura orçamentária conforme filtros
 function renderizarCobertura() {
   const f = DADOS.fontes || {};
-  const contratos = DADOS.contratos || [];
+  const contratos = contratosFiltrados();
 
   // 1) Crédito garantido = saldo atual + a receber (por fonte ou todas)
   let saldoAtual = 0, aReceber = 0;
