@@ -582,17 +582,17 @@ body .top-bar{min-height:108px!important;}
     <!-- Corpo -->
     <div style="padding:26px 28px 28px;">
     <!-- ENTRAR -->
-    <div id="login-form-entrar"><button type="button" onclick="abrirEmailCPE(true)" style="border:0;background:none;color:#9A8A5A;cursor:pointer">Esqueci minha senha</button> <button type="button" onclick="abrirEmailCPE(false)" style="border:0;background:none;color:#9A8A5A;cursor:pointer">Verificar e-mail</button>
+    <div id="login-form-entrar">
       <label style="font-size:11px;font-weight:700;color:#6B5B45;text-transform:uppercase;letter-spacing:.4px;">Número PM</label>
       <input id="lg-usuario" type="text" style="width:100%;box-sizing:border-box;border:1px solid #D4CDB8;border-radius:7px;padding:10px 12px;margin:5px 0 14px;font-size:14px;background:#FBFAF4;" autocomplete="username">
       <label style="font-size:11px;font-weight:700;color:#6B5B45;text-transform:uppercase;letter-spacing:.4px;">Senha</label>
       <input id="lg-senha" type="password" style="width:100%;box-sizing:border-box;border:1px solid #D4CDB8;border-radius:7px;padding:10px 12px;margin:5px 0 6px;font-size:14px;background:#FBFAF4;" autocomplete="current-password" onkeydown="if(event.key==='Enter')fazerLoginUI()">
       <div id="lg-erro" style="color:#C0392B;font-size:12px;min-height:16px;margin-bottom:8px;"></div>
       <button onclick="fazerLoginUI()" id="lg-btn" style="width:100%;background:#9A8A5A;color:#fff;border:none;border-radius:7px;padding:12px;font-size:14px;font-weight:700;cursor:pointer;letter-spacing:.5px;transition:background .2s;" onmouseover="this.style.background='#0A0A0A'" onmouseout="this.style.background='#9A8A5A'">ENTRAR</button>
-      <div style="text-align:center;margin-top:16px;font-size:12px;color:#666;">Não tem acesso? <a href="#" onclick="_lgMostrar('cadastro');return false;" style="color:#9A8A5A;font-weight:700;text-decoration:none;">Criar cadastro</a></div>
+      <div style="text-align:center;margin-top:16px;font-size:12px;color:#666;">Não tem acesso? <a href="#" onclick="_lgMostrar('cadastro');return false;" style="color:#9A8A5A;font-weight:700;text-decoration:none;">Criar cadastro</a></div><div style="text-align:center;margin-top:10px;font-size:12px;"><a href="#" onclick="abrirEmailCPE(true);return false;" style="color:#9A8A5A;text-decoration:none;">Esqueci minha senha</a></div>
     </div>
     <!-- CADASTRO -->
-    <div id="login-form-cadastro" style="display:none;">
+    <div id="login-form-cadastro" style="display:none;"><div style="text-align:center;margin-bottom:12px;"><a href="#" onclick="abrirEmailCPE(false);return false;" style="color:#9A8A5A;font-size:12px;">Verificar e-mail</a></div>
       <label for="cad-email">E-mail de recuperação</label><input id="cad-email" type="email" required autocomplete="email" style="width:100%;box-sizing:border-box;border:1px solid #D4CDB8;border-radius:7px;padding:10px 12px;margin:5px 0 12px"><label for="cad-nome">Nome</label><input id="cad-nome" type="text" style="width:100%;box-sizing:border-box;border:1px solid #D4CDB8;border-radius:7px;padding:10px 12px;margin:5px 0 12px;font-size:14px;background:#FBFAF4;">
       <label style="font-size:11px;font-weight:700;color:#6B5B45;text-transform:uppercase;letter-spacing:.4px;">Número PM</label>
       <input id="cad-usuario" type="text" style="width:100%;box-sizing:border-box;border:1px solid #D4CDB8;border-radius:7px;padding:10px 12px;margin:5px 0 12px;font-size:14px;background:#FBFAF4;">
@@ -960,7 +960,7 @@ body .top-bar{min-height:108px!important;}
 <div class="tab-content" id="tab-content-usuarios">
   <div class="table-card">
     <div class="table-header-row">
-      <span class="tit">Gerência de Usuários</span>
+      <span class="tit">Gerência de Usuários · Edição de acessos v3</span>
       <span class="tot" id="usuarios-total">—</span>
     </div>
     <div style="padding:10px 14px;">
@@ -1072,7 +1072,7 @@ body .top-bar{min-height:108px!important;}
 // ============================================================
 // URLs CSV DAS PLANILHAS PUBLICADAS
 // ============================================================
-const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxdKr0AomZtLa-9VynDiEoLcayM7YAAku93tSo1Ppjpr5mT8lmbGfeiVutleExM_2Is2w/exec";
+const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzIX90npG54OYwCE5Iz73bD5TDLMXIDg3E8EoV8eF9iuNR_VrWT60Hvu4Ptz3vBfqSFow/exec";
 
 // ===================== AUTENTICAÇÃO (frontend) =====================
 var SESSAO = null; // {usuario, nome, perfil, abas:[]}
@@ -1179,8 +1179,9 @@ async function carregarUsuarios(){
  const card=document.createElement('section');card.style.cssText='padding:14px;border-bottom:1px solid #D4CDB8';
  const titulo=document.createElement('strong');titulo.textContent=u.nome+' · '+u.usuario+' — '+(u.status==='APROVADO'?'Aprovado':'Pendente');card.append(titulo);
  const grupo=document.createElement('fieldset');grupo.style.cssText='border:0;padding:12px 0;display:flex;flex-wrap:wrap;gap:12px 20px';
- const legend=document.createElement('legend');legend.textContent='Abas permitidas';grupo.append(legend);
- for(const ab of TODAS_ABAS.filter(ab=>ab!=='usuarios'||u.perfil==='ADMIN')){const label=document.createElement('label'),check=document.createElement('input');check.type='checkbox';check.value=ab;if(ab==='usuarios')check.disabled=true;check.checked=(u.abas||[]).includes(ab);label.style.cssText='display:flex;align-items:center;gap:6px';label.append(check,document.createTextNode(NOMES_ABAS[ab]));grupo.append(label);}
+ const legend=document.createElement('legend');legend.textContent=u.status==='APROVADO'?'Editar abas permitidas':'Selecionar abas para aprovação';grupo.append(legend);
+ const instrucao=document.createElement('p');instrucao.textContent='Marque para liberar ou desmarque para retirar o acesso. Depois clique em Salvar acessos.';instrucao.style.cssText='font-size:12px;margin:8px 0;color:#6B5B45';if(u.status==='APROVADO')card.append(instrucao);
+ for(const ab of TODAS_ABAS.filter(ab=>ab!=='usuarios'||u.perfil==='ADMIN')){const label=document.createElement('label'),check=document.createElement('input');check.type='checkbox';check.value=ab;check.style.cssText='appearance:auto;width:16px;height:16px;accent-color:#9A8A5A;flex-shrink:0';if(ab==='usuarios')check.disabled=true;check.checked=(u.abas||[]).includes(ab);label.style.cssText='display:flex;align-items:center;gap:6px';label.append(check,document.createTextNode(NOMES_ABAS[ab]));grupo.append(label);}
  card.append(grupo);
  card.append(botaoUsuario(u.status==='APROVADO'?'Salvar acessos':'Aprovar',async()=>{
  const abas=Array.from(grupo.querySelectorAll('input:checked')).map(x=>x.value);
