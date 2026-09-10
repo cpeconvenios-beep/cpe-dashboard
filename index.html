@@ -582,7 +582,7 @@ body .top-bar{min-height:108px!important;}
     <!-- Corpo -->
     <div style="padding:26px 28px 28px;">
     <!-- ENTRAR -->
-    <div id="login-form-entrar"><button type="button" onclick="alert('Para recuperar o acesso, solicite uma senha temporária ao administrador do CPE. Ao entrar, você deverá criar uma nova senha.')" style="float:right;border:0;background:none;color:#9A8A5A;cursor:pointer">Esqueci minha senha</button>
+    <div id="login-form-entrar"><button type="button" onclick="abrirEmailCPE(true)" style="border:0;background:none;color:#9A8A5A;cursor:pointer">Esqueci minha senha</button> <button type="button" onclick="abrirEmailCPE(false)" style="border:0;background:none;color:#9A8A5A;cursor:pointer">Verificar e-mail</button>
       <label style="font-size:11px;font-weight:700;color:#6B5B45;text-transform:uppercase;letter-spacing:.4px;">Número PM</label>
       <input id="lg-usuario" type="text" style="width:100%;box-sizing:border-box;border:1px solid #D4CDB8;border-radius:7px;padding:10px 12px;margin:5px 0 14px;font-size:14px;background:#FBFAF4;" autocomplete="username">
       <label style="font-size:11px;font-weight:700;color:#6B5B45;text-transform:uppercase;letter-spacing:.4px;">Senha</label>
@@ -593,8 +593,7 @@ body .top-bar{min-height:108px!important;}
     </div>
     <!-- CADASTRO -->
     <div id="login-form-cadastro" style="display:none;">
-      <label style="font-size:11px;font-weight:700;color:#6B5B45;text-transform:uppercase;letter-spacing:.4px;">Nome completo</label>
-      <input id="cad-nome" type="text" style="width:100%;box-sizing:border-box;border:1px solid #D4CDB8;border-radius:7px;padding:10px 12px;margin:5px 0 12px;font-size:14px;background:#FBFAF4;">
+      <label for="cad-email">E-mail de recuperação</label><input id="cad-email" type="email" required autocomplete="email" style="width:100%;box-sizing:border-box;border:1px solid #D4CDB8;border-radius:7px;padding:10px 12px;margin:5px 0 12px"><label for="cad-nome">Nome</label><input id="cad-nome" type="text" style="width:100%;box-sizing:border-box;border:1px solid #D4CDB8;border-radius:7px;padding:10px 12px;margin:5px 0 12px;font-size:14px;background:#FBFAF4;">
       <label style="font-size:11px;font-weight:700;color:#6B5B45;text-transform:uppercase;letter-spacing:.4px;">Número PM</label>
       <input id="cad-usuario" type="text" style="width:100%;box-sizing:border-box;border:1px solid #D4CDB8;border-radius:7px;padding:10px 12px;margin:5px 0 12px;font-size:14px;background:#FBFAF4;">
       <label style="font-size:11px;font-weight:700;color:#6B5B45;text-transform:uppercase;letter-spacing:.4px;">Senha</label>
@@ -1119,7 +1118,9 @@ async function fazerLoginUI(){
   }
 }
 async function cadastrarUI(){
-  var nome=(document.getElementById('cad-nome').value||'').trim();
+  var email=document.getElementById('cad-email').value.trim();
+ if(!email||!document.getElementById('cad-email').checkValidity()){document.getElementById('cad-msg').textContent='Informe um e-mail válido.';return;}
+ var nome=(document.getElementById('cad-nome').value||'').trim();
   var u=(document.getElementById('cad-usuario').value||'').trim();
   var s=(document.getElementById('cad-senha').value||'').trim();
   var msg=document.getElementById('cad-msg'); var btn=document.getElementById('cad-btn');
@@ -1127,7 +1128,7 @@ async function cadastrarUI(){
   if(!u||!s){ msg.textContent='Usuário e senha são obrigatórios.'; return; }
   btn.textContent='Enviando...'; btn.disabled=true;
   try{
-    var r = await _cpeResposta({acao:'cadastrar', usuario:u, senha:s, nome:nome});
+    var r = await _cpeResposta({acao:'cadastrar', usuario:u, senha:s, nome:nome, email:email});
     var j = await r.json();
     if(j.ok){ msg.style.color='#2F6B1E'; msg.textContent=j.msg||'Cadastro enviado! Aguarde aprovação.'; }
     else { msg.textContent=j.erro||'Falha no cadastro.'; }
@@ -1166,7 +1167,15 @@ async function carregarUsuarios(){
  try{
  const lista=await _cpeChamar({acao:'listarUsuarios'});if(!Array.isArray(lista))throw new Error(lista.erro||'Não foi possível carregar usuários.');
  cont.replaceChildren();document.getElementById('usuarios-total').textContent=lista.length+' usuário(s)';
- for(const u of lista){
+ const secoes=[
+ {id:'usuarios-pendentes',titulo:'Aprovação pendente',lista:lista.filter(u=>u.status!=='APROVADO'),vazio:'Nenhum usuário aguardando aprovação.'},
+ {id:'usuarios-aprovados',titulo:'Usuários com acesso',lista:lista.filter(u=>u.status==='APROVADO'),vazio:'Nenhum usuário aprovado.'}
+ ];
+ for(const secao of secoes){
+ const bloco=document.createElement('section');bloco.id=secao.id;bloco.setAttribute('aria-labelledby',secao.id+'-titulo');bloco.style.cssText='margin:12px 0 24px;border:1px solid #D4CDB8;border-radius:10px;overflow:hidden';
+ const cabecalho=document.createElement('h3');cabecalho.id=secao.id+'-titulo';cabecalho.textContent=secao.titulo+' ('+secao.lista.length+')';cabecalho.style.cssText='margin:0;padding:12px 14px;background:#F0EDE0;color:#0A0A0A;font-size:14px;border-bottom:1px solid #D4CDB8';bloco.append(cabecalho);cont.append(bloco);
+ if(!secao.lista.length){const vazio=document.createElement('p');vazio.textContent=secao.vazio;vazio.style.cssText='margin:0;padding:14px;font-size:13px';bloco.append(vazio);}
+ for(const u of secao.lista){
  const card=document.createElement('section');card.style.cssText='padding:14px;border-bottom:1px solid #D4CDB8';
  const titulo=document.createElement('strong');titulo.textContent=u.nome+' · '+u.usuario+' — '+(u.status==='APROVADO'?'Aprovado':'Pendente');card.append(titulo);
  const grupo=document.createElement('fieldset');grupo.style.cssText='border:0;padding:12px 0;display:flex;flex-wrap:wrap;gap:12px 20px';
@@ -1190,10 +1199,34 @@ async function carregarUsuarios(){
  d.append(title,input,msg,botaoUsuario('Fechar',()=>d.close()));d.addEventListener('close',()=>{d.remove();if(u.usuario===SESSAO.usuario)logoutUI();});document.body.append(d);d.showModal();input.select();
  }));
  if(u.usuario!==SESSAO.usuario)card.append(botaoUsuario(u.status==='APROVADO'?'Remover usuário':'Rejeitar',async()=>{if(!confirm('Remover '+u.nome+'?'))return;const j=await _cpeChamar({acao:'remover',usuario:u.usuario});if(!j.ok)throw new Error(j.erro);await carregarUsuarios();}));
- cont.append(card);
+ bloco.append(card);
+ }
  }
  }catch(e){cont.textContent=e.message;}
 }
+function abrirEmailCPE(recuperar){
+ const d=document.createElement('dialog');d.style.cssText='margin:auto;padding:24px;border:1px solid #9A8A5A;border-radius:12px;width:400px;max-width:90vw';
+ const title=document.createElement('h3');title.textContent=recuperar?'Recuperar senha':'Verificar e-mail';d.append(title);
+ const desc=document.createElement('p');desc.textContent=recuperar?'Confirme o código recebido por e-mail para receber sua senha temporária.':'Informe sua senha atual e confirme o código enviado ao e-mail. Usuários já cadastrados também podem usar esta opção.';d.append(desc);
+ const campos={};
+ for(const [key,label,type] of [['usuario','Número PM','text'],...(!recuperar?[['senha','Senha atual','password']]:[]),['email','E-mail','email'],['codigo','Código recebido por e-mail','text']]){
+ const l=document.createElement('label'),input=document.createElement('input');l.textContent=label;input.type=type;input.style.cssText='display:block;width:100%;box-sizing:border-box;padding:9px;margin:5px 0 12px;border:1px solid #D4CDB8;border-radius:7px';l.append(input);d.append(l);campos[key]=input;
+ }
+ campos.usuario.value=document.getElementById('cad-usuario').value||document.getElementById('lg-usuario').value||'';
+ campos.email.value=document.getElementById('cad-email').value||'';
+ const msg=document.createElement('p');msg.setAttribute('role','status');d.append(msg);
+ async function executar(confirmar){
+ const params={acao:recuperar?(confirmar?'confirmarRecuperacao':'solicitarRecuperacao'):(confirmar?'confirmarEmail':'enviarVerificacaoEmail')};
+ for(const key in campos)params[key]=campos[key].value;
+ if(!params.usuario||(!recuperar&&!params.senha)||(!confirmar&&!campos.email.checkValidity())||(!confirmar&&!params.email)){msg.textContent='Preencha os dados e informe um e-mail válido.';return;}
+ if(confirmar&&!params.codigo){msg.textContent='Informe o código recebido por e-mail.';return;}
+ msg.textContent='Aguarde...';for(const b of d.querySelectorAll('button'))b.disabled=true;
+ try{const r=await _cpeChamar(params);msg.textContent=r.msg||r.erro||'Não foi possível concluir.';if(r.ok&&confirmar){for(const el of Object.values(campos))el.disabled=true;enviar.hidden=true;confirmarBtn.hidden=true;}}catch(e){msg.textContent='Não foi possível concluir: '+e.message;}finally{for(const b of d.querySelectorAll('button'))b.disabled=false;}
+ }
+ const enviar=botaoUsuario('Enviar código',()=>executar(false)),confirmarBtn=botaoUsuario(recuperar?'Confirmar e receber senha':'Confirmar e-mail',()=>executar(true));
+ d.append(enviar,confirmarBtn,botaoUsuario('Fechar',()=>d.close()));d.addEventListener('close',()=>d.remove());document.body.append(d);d.showModal();
+}
+
 function abrirTrocaSenha(){
  if(document.getElementById('troca-senha-dialog'))return;
  const d=document.createElement('dialog');d.id='troca-senha-dialog';d.style.cssText='margin:auto;padding:24px;border:1px solid #9A8A5A;border-radius:12px;max-width:400px';
