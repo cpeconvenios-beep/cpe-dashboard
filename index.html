@@ -582,7 +582,7 @@ body .top-bar{min-height:108px!important;}
     <!-- Corpo -->
     <div style="padding:26px 28px 28px;">
     <!-- ENTRAR -->
-    <div id="login-form-entrar">
+    <div id="login-form-entrar"><button type="button" onclick="alert('Para recuperar o acesso, solicite uma senha temporária ao administrador do CPE. Ao entrar, você deverá criar uma nova senha.')" style="float:right;border:0;background:none;color:#9A8A5A;cursor:pointer">Esqueci minha senha</button>
       <label style="font-size:11px;font-weight:700;color:#6B5B45;text-transform:uppercase;letter-spacing:.4px;">Número PM</label>
       <input id="lg-usuario" type="text" style="width:100%;box-sizing:border-box;border:1px solid #D4CDB8;border-radius:7px;padding:10px 12px;margin:5px 0 14px;font-size:14px;background:#FBFAF4;" autocomplete="username">
       <label style="font-size:11px;font-weight:700;color:#6B5B45;text-transform:uppercase;letter-spacing:.4px;">Senha</label>
@@ -1086,17 +1086,13 @@ function _lgMostrar(qual){
   document.getElementById('cad-msg').textContent='';
 }
 async function _cpeChamar(params){
-  const controller=new AbortController();
-  const timer=setTimeout(()=>controller.abort(),90000);
-  try{
-    const response=await fetch(_authURL(params),{method:'GET',redirect:'follow',cache:'no-store',credentials:'omit',signal:controller.signal});
-    if(!response.ok)throw new Error('Apps Script respondeu HTTP '+response.status+'.');
-    const texto=await response.text();
-    try{return JSON.parse(texto);}catch(e){throw new Error('O Apps Script não retornou dados JSON. Confira a URL e o acesso da implantação.');}
-  }catch(e){
-    if(e.name==='AbortError')throw new Error('Tempo esgotado ao consultar o Apps Script. Tente novamente.');
-    throw e;
-  }finally{clearTimeout(timer);}
+ params=Object.assign({},params,{token:SESSAO&&SESSAO.token||''});
+ if(typeof google!=='undefined'&&google.script&&google.script.run){
+ return new Promise((resolve,reject)=>google.script.run.withSuccessHandler(resolve).withFailureHandler(e=>reject(new Error(e.message))).cpeSolicitar(params));
+ }
+ const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),90000);
+ try{const r=await fetch(APPS_SCRIPT_URL,{method:'POST',body:new URLSearchParams(params),redirect:'follow',credentials:'omit',signal:controller.signal});
+ if(!r.ok)throw new Error('Falha HTTP '+r.status);return await r.json();}finally{clearTimeout(timer);}
 }
 function _cpeResposta(params){return _cpeChamar(params).then(function(value){return {json:()=>Promise.resolve(value)};});}
 
@@ -1115,7 +1111,7 @@ async function fazerLoginUI(){
     var r = await _cpeResposta({acao:'login', usuario:u, senha:s});
     var j = await r.json();
     if(!j.ok){ erro.textContent = j.erro || 'Falha no login.'; btn.textContent='Entrar'; btn.disabled=false; return; }
-    SESSAO = { usuario:j.usuario, nome:j.nome, perfil:j.perfil, abas:j.abas||['visao'] };
+    SESSAO = j;
     try{ sessionStorage.setItem('cpe_sessao', JSON.stringify(SESSAO)); }catch(e){}
     _aplicarSessao();
   }catch(e){
@@ -1139,7 +1135,8 @@ async function cadastrarUI(){
   btn.textContent='Enviar cadastro'; btn.disabled=false;
 }
 function _aplicarSessao(){
-  if(!SESSAO) return;
+  if(!SESSAO || !SESSAO.token) return;
+  if(SESSAO.trocarSenha){abrirTrocaSenha();return;}
   // esconde login
   document.getElementById('login-overlay').style.display='none';
   // mostra/esconde abas conforme perfil
@@ -1162,55 +1159,53 @@ function logoutUI(){
 // ===== Gerência de usuários (admin) =====
 
 var NOMES_ABAS={visao:'Visão Geral',programacao:'Programação',contratos:'Contratos',repasses:'Repasses',sirconv:'Convênios SIRCONV',demandas:'Controle de Demandas',diarias:'Diárias',usuarios:'Gerência de Usuários'};
-function _seletorAbas(usuario){
-  return '<fieldset id="abas-'+_esc(usuario)+'" style="border:1px solid #D4CDB8;border-radius:6px;padding:12px;display:grid;grid-template-columns:repeat(2,minmax(150px,1fr));gap:12px;"><legend>Abas permitidas</legend>'+TODAS_ABAS.map(function(ab){
-    return '<label style="display:flex;align-items:center;gap:8px;cursor:pointer;"><input type="checkbox" value="'+ab+'">'+NOMES_ABAS[ab]+'</label>';
-  }).join('')+'</fieldset><small>Gerência de Usuários permite aprovar e remover usuários.</small>';
-}
-
+function _esc(s){return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');}
+function botaoUsuario(texto,acao){var b=document.createElement('button');b.textContent=texto;b.type='button';b.style.cssText='border:1px solid #9A8A5A;border-radius:8px;padding:7px 10px;margin:4px;background:#F0EDE0;color:#0A0A0A;cursor:pointer';b.onclick=async()=>{b.disabled=true;try{await acao();}catch(e){alert(e.message);}finally{b.disabled=false;}};return b;}
 async function carregarUsuarios(){
-  var cont=document.getElementById('usuarios-lista'); if(!cont) return;
-  cont.innerHTML='<div class="loading" style="padding:20px;">Carregando...</div>';
-  try{
-    var r=await _cpeResposta({acao:'listarUsuarios', _cb:Date.now()});
-    var lista=await r.json();
-    if(!Array.isArray(lista)){ cont.innerHTML='<div style="padding:14px;color:#C0392B;">Erro ao carregar usuários.</div>'; return; }
-    var tot=document.getElementById('usuarios-total'); if(tot) tot.textContent=lista.length+' usuário(s)';
-    var pend=lista.filter(function(u){return u.status!=='APROVADO';});
-    var aprov=lista.filter(function(u){return u.status==='APROVADO';});
-    var html='';
-    html+='<div style="font-weight:800;color:#C0392B;margin:6px 0 8px;">Pendentes de aprovação ('+pend.length+')</div>';
-    if(!pend.length){ html+='<div style="color:#999;font-size:13px;margin-bottom:14px;">Nenhum cadastro pendente.</div>'; }
-    else {
-      html+='<table class="data-table" style="margin-bottom:18px;"><thead><tr><th>Número PM</th><th>Nome</th><th>Selecionar acesso</th><th>Ação</th></tr></thead><tbody>';
-      pend.forEach(function(u){
-        html+='<tr><td><strong>'+_esc(u.usuario)+'</strong></td><td>'+_esc(u.nome)+'</td>'+
-          '<td>'+_seletorAbas(u.usuario)+'</td>'+
-          '<td><button onclick="aprovarUI(\''+_esc(u.usuario)+'\')" style="background:#2F6B1E;color:#fff;border:none;border-radius:5px;padding:6px 12px;font-weight:700;cursor:pointer;margin-right:6px;">Aprovar</button>'+
-          '<button onclick="removerUI(\''+_esc(u.usuario)+'\')" style="background:#C0392B;color:#fff;border:none;border-radius:5px;padding:6px 12px;font-weight:700;cursor:pointer;">Rejeitar</button></td></tr>';
-      });
-      html+='</tbody></table>';
-    }
-    html+='<div style="font-weight:800;color:#2F6B1E;margin:6px 0 8px;">Usuários aprovados ('+aprov.length+')</div>';
-    html+='<table class="data-table"><thead><tr><th>Número PM</th><th>Nome</th><th>Abas permitidas</th><th>Ação</th></tr></thead><tbody>';
-    aprov.forEach(function(u){
-      html+='<tr><td><strong>'+_esc(u.usuario)+'</strong></td><td>'+_esc(u.nome)+'</td><td><span class="grau-badge grau-2">'+_esc((u.abas||[]).map(function(ab){return NOMES_ABAS[ab]||ab;}).join(' · '))+'</span></td>'+
-        '<td>'+(u.usuario===SESSAO.usuario?'<span style="color:#999;font-size:12px;">(você)</span>':'<button onclick="removerUI(\''+_esc(u.usuario)+'\')" style="background:#C0392B;color:#fff;border:none;border-radius:5px;padding:5px 10px;font-weight:700;cursor:pointer;">Remover</button>')+'</td></tr>';
-    });
-    html+='</tbody></table>';
-    cont.innerHTML=html;
-  }catch(e){ cont.innerHTML='<div style="padding:14px;color:#C0392B;">Erro de conexão.</div>'; }
+ const cont=document.getElementById('usuarios-lista');if(!cont)return;cont.textContent='Carregando usuários...';
+ try{
+ const lista=await _cpeChamar({acao:'listarUsuarios'});if(!Array.isArray(lista))throw new Error(lista.erro||'Não foi possível carregar usuários.');
+ cont.replaceChildren();document.getElementById('usuarios-total').textContent=lista.length+' usuário(s)';
+ for(const u of lista){
+ const card=document.createElement('section');card.style.cssText='padding:14px;border-bottom:1px solid #D4CDB8';
+ const titulo=document.createElement('strong');titulo.textContent=u.nome+' · '+u.usuario+' — '+(u.status==='APROVADO'?'Aprovado':'Pendente');card.append(titulo);
+ const grupo=document.createElement('fieldset');grupo.style.cssText='border:0;padding:12px 0;display:flex;flex-wrap:wrap;gap:12px 20px';
+ const legend=document.createElement('legend');legend.textContent='Abas permitidas';grupo.append(legend);
+ for(const ab of TODAS_ABAS.filter(ab=>ab!=='usuarios'||u.perfil==='ADMIN')){const label=document.createElement('label'),check=document.createElement('input');check.type='checkbox';check.value=ab;if(ab==='usuarios')check.disabled=true;check.checked=(u.abas||[]).includes(ab);label.style.cssText='display:flex;align-items:center;gap:6px';label.append(check,document.createTextNode(NOMES_ABAS[ab]));grupo.append(label);}
+ card.append(grupo);
+ card.append(botaoUsuario(u.status==='APROVADO'?'Salvar acessos':'Aprovar',async()=>{
+ const abas=Array.from(grupo.querySelectorAll('input:checked')).map(x=>x.value);
+ if(!abas.length)throw new Error('Selecione pelo menos uma aba.');
+ const j=await _cpeChamar({acao:u.status==='APROVADO'?'salvarAcessos':'aprovar',usuario:u.usuario,abas:JSON.stringify(abas)});if(!j.ok)throw new Error(j.erro);
+ if(u.usuario===SESSAO.usuario){alert('Acessos salvos. Entre novamente.');logoutUI();return;}
+ alert('Acessos salvos. Serão aplicados na próxima validação da sessão do usuário.');await carregarUsuarios();
+ }));
+ if(u.status==='APROVADO')card.append(botaoUsuario('Redefinir senha',async()=>{
+ if(!confirm('Gerar uma senha temporária para '+u.nome+'? A senha anterior deixará de funcionar.'))return;
+ const j=await _cpeChamar({acao:'redefinirSenha',usuario:u.usuario});if(!j.ok)throw new Error(j.erro);
+ const d=document.createElement('dialog');d.style.cssText='margin:auto;padding:24px;border:1px solid #9A8A5A;border-radius:12px;max-width:420px';
+ const title=document.createElement('h3');title.textContent='Senha temporária — '+u.nome;
+ const input=document.createElement('input');input.readOnly=true;input.value=j.senhaTemporaria;input.style.cssText='width:100%;padding:10px;margin:14px 0';input.onclick=()=>input.select();
+ const msg=document.createElement('p');msg.textContent=j.msg+' Copie agora e entregue ao usuário por um canal privado. Ela não será exibida novamente.';
+ d.append(title,input,msg,botaoUsuario('Fechar',()=>d.close()));d.addEventListener('close',()=>{d.remove();if(u.usuario===SESSAO.usuario)logoutUI();});document.body.append(d);d.showModal();input.select();
+ }));
+ if(u.usuario!==SESSAO.usuario)card.append(botaoUsuario(u.status==='APROVADO'?'Remover usuário':'Rejeitar',async()=>{if(!confirm('Remover '+u.nome+'?'))return;const j=await _cpeChamar({acao:'remover',usuario:u.usuario});if(!j.ok)throw new Error(j.erro);await carregarUsuarios();}));
+ cont.append(card);
+ }
+ }catch(e){cont.textContent=e.message;}
 }
-function _esc(s){ return (s==null?'':String(s)).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/'/g,'&#39;'); }
-async function aprovarUI(usuario){
-  var grupo=document.getElementById('abas-'+usuario);
-  var abas=Array.from(grupo.querySelectorAll('input:checked')).map(function(el){return el.value;});
-  if(!abas.length){alert('Selecione pelo menos uma aba para aprovar o usuário.');return;}
-  try{ var r=await _cpeResposta({acao:'aprovar', usuario:usuario, abas:JSON.stringify(abas)}); var j=await r.json(); if(j.ok) carregarUsuarios(); else alert(j.erro||'Erro'); }catch(e){ alert('Erro de conexão.'); }
-}
-async function removerUI(usuario){
-  if(!confirm('Remover o usuário '+usuario+'?')) return;
-  try{ var r=await _cpeResposta({acao:'remover', usuario:usuario}); var j=await r.json(); if(j.ok) carregarUsuarios(); else alert(j.erro||'Erro'); }catch(e){ alert('Erro de conexão.'); }
+function abrirTrocaSenha(){
+ if(document.getElementById('troca-senha-dialog'))return;
+ const d=document.createElement('dialog');d.id='troca-senha-dialog';d.style.cssText='margin:auto;padding:24px;border:1px solid #9A8A5A;border-radius:12px;max-width:400px';
+ d.innerHTML='<h3>Crie sua nova senha</h3><p>Substitua a senha temporária por uma senha de pelo menos 8 caracteres.</p><label>Nova senha<input id="nova-senha" type="password" autocomplete="new-password" style="display:block;padding:8px;margin:8px 0"></label><label>Confirmar senha<input id="confirma-senha" type="password" autocomplete="new-password" style="display:block;padding:8px;margin:8px 0"></label><p role="alert" id="troca-erro"></p>';
+ d.addEventListener('cancel',e=>e.preventDefault());
+ d.append(botaoUsuario('Salvar nova senha',async()=>{
+ const senha=d.querySelector('#nova-senha').value,confirmacao=d.querySelector('#confirma-senha').value;
+ const msg=d.querySelector('#troca-erro');
+ if(senha!==confirmacao){msg.textContent='As senhas não coincidem.';return;}
+ const j=await _cpeChamar({acao:'trocarSenha',senhaNova:senha});if(!j.ok){msg.textContent=j.erro;return;}
+ SESSAO=j;sessionStorage.setItem('cpe_sessao',JSON.stringify(j));d.close();d.remove();_aplicarSessao();
+ }),botaoUsuario('Sair',()=>logoutUI()));document.body.append(d);d.showModal();
 }
 
 const CSV_REPASSES = "https://docs.google.com/spreadsheets/d/e/2PACX-1vR3-UmXX2u8TCbBuEg2xO-L0SO5ODNI0039rFaiSzz1vET8TB3-H7Rn52IVqgqpmakfXqj1cV2wDiI2/pub?output=csv";
@@ -3173,7 +3168,7 @@ window.addEventListener('load', () => {
   // tenta restaurar sessão salva; se não houver, mostra login
   try{
     var s = sessionStorage.getItem('cpe_sessao');
-    if(s){ SESSAO = JSON.parse(s); _aplicarSessao(); return; }
+    if(s){ SESSAO=JSON.parse(s); if(SESSAO.token){_cpeChamar({acao:'sessao'}).then(j=>{if(j.ok){SESSAO=j;_aplicarSessao();}else logoutUI();}).catch(()=>logoutUI());return;} SESSAO=null; }
   }catch(e){}
   // sem sessão: login já está visível (overlay), não carrega dados
 });
