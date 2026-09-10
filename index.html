@@ -1666,7 +1666,7 @@ function renderizarVisaoGeral() {
       // DER: retenção de 40%
       const retencao = (fd.convenio||0) * 0.40;
       liquidoCPE = (fd.convenio||0) - retencao;
-      retencaoHtml = `<div class="detail-line" style="color:#a32d2d;">Retenção Cmd Geral (40%): <span style="color:#a32d2d;font-weight:600;">${BRL(retencao)}</span></div>
+      retencaoHtml = `<div class="detail-line" style="color:#a32d2d!important;">Retenção Cmd Geral (40%): <span style="color:#a32d2d!important;font-weight:600;">${BRL(retencao)}</span></div>
       <div class="detail-line">Líquido CPE (60%): <span style="color:#3b6d11;font-weight:700;">${BRL(liquidoCPE)}</span></div>`;
     } else if (k === 'DPRF') {
       // DPRF: retenção de valor fixo (R$ 1.034.437,00)
@@ -1675,7 +1675,7 @@ function renderizarVisaoGeral() {
       const baseLiq = retencao + liquidoCPE;
       const pctRet = baseLiq > 0 ? ((retencao/baseLiq)*100).toFixed(1) : '0.0';
       const pctLiq = baseLiq > 0 ? ((liquidoCPE/baseLiq)*100).toFixed(1) : '0.0';
-      retencaoHtml = `<div class="detail-line" style="color:#a32d2d;">Retenção Cmd Geral (${pctRet}%): <span style="color:#a32d2d;font-weight:600;">${BRL(retencao)}</span></div>
+      retencaoHtml = `<div class="detail-line" style="color:#a32d2d!important;">Retenção Cmd Geral (${pctRet}%): <span style="color:#a32d2d!important;font-weight:600;">${BRL(retencao)}</span></div>
       <div class="detail-line">Líquido CPE (${pctLiq}%): <span style="color:#3b6d11;font-weight:700;">${BRL(liquidoCPE)}</span></div>`;
     }
     htmlConv += `<div class="convenio-card">
