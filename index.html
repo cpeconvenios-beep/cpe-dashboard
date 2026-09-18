@@ -3308,5 +3308,52 @@ function diRadarRender(base,filtrados){
 }
 
 </script>
+<script>
+// Comparação descritiva entre militares da mesma graduação e tipo de diligência.
+var DI_COMPARA={pagina:0};
+var diRadarValorOriginal=diRadarValor;
+diRadarValor=function(d,campo){return campo==='militar'?diMilitarId(d):diRadarValorOriginal(d,campo);};
+function diMilitarId(d){return String(d.numPolicia||'').trim()||String(d.nome||'').trim();}
+function diCompararAgrupar(lista){
+ var m=new Map();lista.forEach(function(d){var id=diMilitarId(d);if(!id)return;if(!m.has(id))m.set(id,{id:id,nome:String(d.nome||id),custo:0,diarias:0,registros:0});var x=m.get(id);x.custo+=_diNum(d.custo);x.diarias+=_diNum(d.numDiarias);x.registros++;});
+ var a=Array.from(m.values()),mc=a.length?a.reduce(function(s,x){return s+x.custo;},0)/a.length:0,md=a.length?a.reduce(function(s,x){return s+x.diarias;},0)/a.length:0;
+ a.sort(function(x,y){return Math.max(mc?y.custo/mc:0,md?y.diarias/md:0)-Math.max(mc?x.custo/mc:0,md?x.diarias/md:0)||x.nome.localeCompare(y.nome);});
+ return {militares:a,mediaCusto:mc,mediaDiarias:md};
+}
+function diCompararMontar(){
+ if(document.getElementById('di-radar-painel'))return;
+ var p=document.createElement('section');p.id='di-radar-painel';p.innerHTML='<h3>Comparação de militares por graduação</h3><p>Compare valor recebido e quantidade de diárias com a média dos colegas do mesmo grupo. Selecione uma graduação e um tipo de diligência.</p><div class="di-radar-toolbar"><label>Graduação <select id="di-comp-grad"><option value="">Selecione</option></select></label><label>Diligência <select id="di-comp-tipo"><option value="">Selecione</option></select></label><button type="button" id="di-comp-clear">Limpar seleção</button></div><div id="di-radar-selecao"></div><div class="di-radar-grid"><article><h4>Valor recebido por militar (R$)</h4><div class="di-radar-canvas"><canvas id="diRadarCusto"></canvas></div></article><article><h4>Quantidade de diárias por militar</h4><div class="di-radar-canvas"><canvas id="diRadarQuantidade"></canvas></div></article></div><div class="di-radar-toolbar"><button id="di-comp-ant" type="button">Anterior</button><span id="di-comp-pagina"></span><button id="di-comp-prox" type="button">Próximos</button></div><div id="di-comp-militares" class="di-radar-botoes"></div><div id="di-radar-resumo" role="status" aria-live="polite"></div><p class="di-radar-nota">A linha dourada representa a média de todos os militares identificados no grupo, não apenas os exibidos nesta página. Diferenças são descritivas e não indicam irregularidade. Com menos de três militares, a comparação usa barras.</p>';
+ var tab=document.getElementById('tab-content-diarias'),anchor=tab.querySelector('.di-charts');if(anchor)anchor.parentNode.insertBefore(p,anchor);else tab.appendChild(p);
+ ['grad','tipo'].forEach(function(k){document.getElementById('di-comp-'+k).onchange=function(){var campo=k==='grad'?'postoGrad':'tipoDilig';if(this.value)DI_RADAR.selecao[campo]=this.value;else delete DI_RADAR.selecao[campo];delete DI_RADAR.selecao.militar;DI_COMPARA.pagina=0;renderizarDiarias();};});
+ document.getElementById('di-comp-clear').onclick=function(){DI_COMPARA.pagina=0;diRadarLimpar();};
+ document.getElementById('di-comp-ant').onclick=function(){DI_COMPARA.pagina--;renderizarDiarias();};document.getElementById('di-comp-prox').onclick=function(){DI_COMPARA.pagina++;renderizarDiarias();};
+}
+function diCompGrafico(id,itens,campo,media){
+ destroyChart(id);if(typeof Chart==='undefined')return;
+ var labels=itens.map(function(x){return x.nome+' · '+x.id;}),radar=itens.length>=3;
+ chartInstances[id]=new Chart(document.getElementById(id),{type:radar?'radar':'bar',data:{labels:labels,datasets:[{label:campo==='custo'?'Valor recebido':'Quantidade de diárias',data:itens.map(function(x){return x[campo];}),borderColor:'#222',backgroundColor:'rgba(30,30,30,.12)',borderWidth:2,pointRadius:5,pointHitRadius:14,pointBackgroundColor:itens.map(function(x){return x[campo]>media?'#C0392B':'#222';})},{label:'Média da graduação / diligência',data:itens.map(function(){return media;}),borderColor:'#9A8A5A',backgroundColor:'rgba(154,138,90,.12)',borderDash:[5,4],borderWidth:2,pointRadius:2}]},options:{responsive:true,maintainAspectRatio:false,animation:false,onClick:function(e,points){if(points.length)diRadarSelecionar('militar',itens[points[0].index].id);},plugins:{tooltip:{callbacks:{label:function(c){var v=c.dataset.data[c.dataIndex];return c.dataset.label+': '+(campo==='custo'?_diMoeda(v):Number(v).toLocaleString('pt-BR'));}}}},scales:radar?{r:{beginAtZero:true,pointLabels:{font:{size:10}}}}:{y:{beginAtZero:true}}}});
+}
+diRadarRender=function(base,filtrados){
+ diCompararMontar();
+ [['grad','postoGrad'],['tipo','tipoDilig']].forEach(function(pair){var sel=document.getElementById('di-comp-'+pair[0]),value=DI_RADAR.selecao[pair[1]]||'',values=Array.from(new Set(base.map(function(d){return diRadarValor(d,pair[1]);}))).sort();sel.replaceChildren();var empty=document.createElement('option');empty.value='';empty.textContent='Selecione';sel.appendChild(empty);if(value&&!values.includes(value))values.push(value);values.forEach(function(v){var opt=document.createElement('option');opt.value=v;opt.textContent=v;sel.appendChild(opt);});sel.value=value;});
+ var grade=DI_RADAR.selecao.postoGrad,tipo=DI_RADAR.selecao.tipoDilig;
+ var grupo=base.filter(function(d){return (!grade||diRadarValor(d,'postoGrad')===grade)&&(!tipo||diRadarValor(d,'tipoDilig')===tipo)&&(!DI_RADAR.selecao.mes||diRadarValor(d,'mes')===DI_RADAR.selecao.mes)&&(!DI_RADAR.selecao.unidade||diRadarValor(d,'unidade')===DI_RADAR.selecao.unidade)&&(!DI_RADAR.selecao.convenio||diRadarValor(d,'convenio')===DI_RADAR.selecao.convenio);});
+ var result=diCompararAgrupar(grade&&tipo?grupo:[]),all=result.militares;
+ DI_COMPARA.pagina=Math.max(0,Math.min(DI_COMPARA.pagina,Math.max(0,Math.ceil(all.length/12)-1)));
+ var itens=all.slice(DI_COMPARA.pagina*12,DI_COMPARA.pagina*12+12);
+ document.getElementById('di-comp-ant').disabled=DI_COMPARA.pagina===0;document.getElementById('di-comp-prox').disabled=(DI_COMPARA.pagina+1)*12>=all.length;
+ document.getElementById('di-comp-pagina').textContent=all.length?'Militares '+(DI_COMPARA.pagina*12+1)+'–'+(DI_COMPARA.pagina*12+itens.length)+' de '+all.length+' · maiores diferenças primeiro':'Nenhum grupo em comparação';
+ document.getElementById('di-radar-selecao').textContent=Object.keys(DI_RADAR.selecao).map(function(k){return k+': '+DI_RADAR.selecao[k];}).join(' · ');
+ var cont=document.getElementById('di-comp-militares');cont.replaceChildren();itens.forEach(function(x){var b=document.createElement('button');b.type='button';b.textContent=x.nome+' · '+x.id;b.setAttribute('aria-pressed',String(DI_RADAR.selecao.militar===x.id));b.onclick=function(){diRadarSelecionar('militar',x.id);};cont.appendChild(b);});
+ diCompGrafico('diRadarCusto',itens,'custo',result.mediaCusto);diCompGrafico('diRadarQuantidade',itens,'diarias',result.mediaDiarias);
+ var texto=diRadarResumo(filtrados);
+ if(!grade||!tipo)texto+=' Selecione graduação e diligência para comparar os militares.';
+ else if(all.length<2)texto+=' Não há colegas suficientes neste grupo para uma comparação.';
+ else {texto+=' Grupo: '+all.length+' militares. Média por militar: '+_diMoeda(result.mediaCusto)+' e '+result.mediaDiarias.toLocaleString('pt-BR',{maximumFractionDigits:2})+' diárias.';var escolhido=all.find(function(x){return x.id===DI_RADAR.selecao.militar;});var acima=all.filter(function(x){return x.custo>result.mediaCusto||x.diarias>result.mediaDiarias;});texto+=' '+acima.length+' militar(es) acima da média em pelo menos um indicador.';if(escolhido)texto+=' '+escolhido.nome+': diferença de '+_diMoeda(escolhido.custo-result.mediaCusto)+' e '+(escolhido.diarias-result.mediaDiarias).toLocaleString('pt-BR',{maximumFractionDigits:2})+' diárias em relação à média do grupo.';}
+ document.getElementById('di-radar-resumo').textContent=texto;
+ [['chartDiariasMes','mes'],['chartDiariasUnidade','unidade'],['chartDiariasTipo','tipoDilig'],['chartDiariasPostoTotal','postoGrad'],['chartDiariasPostoMedia','postoGrad']].forEach(function(par){var chart=chartInstances[par[0]];if(!chart)return;chart.options.onClick=function(e,pts){if(!pts.length)return;delete DI_RADAR.selecao.militar;DI_COMPARA.pagina=0;var key=par[1]==='mes'?String(pts[0].index+1):String(chart.data.labels[pts[0].index]).trim();diRadarSelecionar(par[1],key==='—'?'Não informado':key);};chart.update('none');});
+};
+
+</script>
 </body>
 </html>
