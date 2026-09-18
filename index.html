@@ -592,7 +592,7 @@ body.cpe-layout-teste .convenio-card .detail-line.retencao-cmd-geral span{color:
 @media(max-width:900px){.di-radar-grid{grid-template-columns:1fr}.di-radar-canvas{height:300px}}
 
 </style>
-</head>
+<style id="cpe-brasao-dourado">body .top-bar .top-bar-logo img{filter:grayscale(1) sepia(1) saturate(1.15) brightness(.9) drop-shadow(0 3px 4px #0005)!important;}</style></head>
 <body class="cpe-layout-teste">
 <!-- ===================== TELA DE LOGIN ===================== -->
 <div id="login-overlay" style="position:fixed;inset:0;z-index:99999;background:linear-gradient(135deg,#0A0A0A 0%,#1a1a1a 45%,#9A8A5A 100%);display:flex;align-items:center;justify-content:center;padding:16px;">
@@ -2590,6 +2590,7 @@ function renderizarDiarias(){
     return true;
   });
   var radarBase=filt.slice();
+  diCompararPreparar(radarBase);
   filt=diRadarFiltrar(filt);
   // KPIs
   var custo=0, diarias=0, nomes={};
@@ -3311,6 +3312,21 @@ function diRadarRender(base,filtrados){
 <script>
 // Comparação descritiva entre militares da mesma graduação e tipo de diligência.
 var DI_COMPARA={pagina:0};
+function diCompararPreparar(base){
+ var s=DI_RADAR.selecao;
+ if(s.postoGrad&&s.tipoDilig)return;
+ var grupos=new Map();
+ base.forEach(function(d){
+  var grade=diRadarValor(d,'postoGrad'),tipo=diRadarValor(d,'tipoDilig');
+  if((s.postoGrad&&grade!==s.postoGrad)||(s.tipoDilig&&tipo!==s.tipoDilig))return;
+  if(['mes','unidade','convenio'].some(function(k){return s[k]&&diRadarValor(d,k)!==s[k];}))return;
+  var key=JSON.stringify([grade,tipo]);
+  if(!grupos.has(key))grupos.set(key,{grade:grade,tipo:tipo,ids:new Set()});
+  var id=diMilitarId(d);if(id)grupos.get(key).ids.add(id);
+ });
+ var candidatos=Array.from(grupos.values()).filter(function(g){return g.ids.size;}).sort(function(a,b){return b.ids.size-a.ids.size||a.grade.localeCompare(b.grade)||a.tipo.localeCompare(b.tipo);});
+ if(candidatos.length){s.postoGrad=candidatos[0].grade;s.tipoDilig=candidatos[0].tipo;DI_COMPARA.pagina=0;}
+}
 var diRadarValorOriginal=diRadarValor;
 diRadarValor=function(d,campo){return campo==='militar'?diMilitarId(d):diRadarValorOriginal(d,campo);};
 function diMilitarId(d){return String(d.numPolicia||'').trim()||String(d.nome||'').trim();}
@@ -3329,7 +3345,7 @@ function diCompararMontar(){
  document.getElementById('di-comp-ant').onclick=function(){DI_COMPARA.pagina--;renderizarDiarias();};document.getElementById('di-comp-prox').onclick=function(){DI_COMPARA.pagina++;renderizarDiarias();};
 }
 function diCompGrafico(id,itens,campo,media){
- destroyChart(id);if(typeof Chart==='undefined')return;
+ destroyChart(id);var canvas=document.getElementById(id);canvas.parentNode.style.display=itens.length?'':'none';if(!itens.length||typeof Chart==='undefined')return;
  var labels=itens.map(function(x){return x.nome+' · '+x.id;}),radar=itens.length>=3;
  chartInstances[id]=new Chart(document.getElementById(id),{type:radar?'radar':'bar',data:{labels:labels,datasets:[{label:campo==='custo'?'Valor recebido':'Quantidade de diárias',data:itens.map(function(x){return x[campo];}),borderColor:'#222',backgroundColor:'rgba(30,30,30,.12)',borderWidth:2,pointRadius:5,pointHitRadius:14,pointBackgroundColor:itens.map(function(x){return x[campo]>media?'#C0392B':'#222';})},{label:'Média da graduação / diligência',data:itens.map(function(){return media;}),borderColor:'#9A8A5A',backgroundColor:'rgba(154,138,90,.12)',borderDash:[5,4],borderWidth:2,pointRadius:2}]},options:{responsive:true,maintainAspectRatio:false,animation:false,onClick:function(e,points){if(points.length)diRadarSelecionar('militar',itens[points[0].index].id);},plugins:{tooltip:{callbacks:{label:function(c){var v=c.dataset.data[c.dataIndex];return c.dataset.label+': '+(campo==='custo'?_diMoeda(v):Number(v).toLocaleString('pt-BR'));}}}},scales:radar?{r:{beginAtZero:true,pointLabels:{font:{size:10}}}}:{y:{beginAtZero:true}}}});
 }
