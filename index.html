@@ -995,7 +995,7 @@ body.cpe-layout-teste .convenio-card .detail-line.retencao-cmd-geral span{color:
   </div>
 </div>
 
-<div class="tab-content" id="tab-content-diarias">
+<div class="tab-content" id="tab-content-diarias"><section id="di-upload" style="margin:16px;padding:20px;border:1px solid #D4CDB8;border-radius:10px;background:white"><h3>Atualizar planilha de Diárias</h3><p>Envie a base completa no modelo atual. A atualização valerá para todos os usuários. A base anterior será preservada.</p><label for="di-upload-arquivo">Planilha Excel (.xls ou .xlsx, até 10 MB)</label> <input id="di-upload-arquivo" type="file" accept=".xls,.xlsx"><button id="di-upload-confirmar" type="button" disabled style="background:#0A0A0A;color:#d5c28d;padding:10px 16px;margin:12px;border:1px solid #9A8A5A">Confirmar atualização para todos</button><p id="di-upload-status" role="status" aria-live="polite">Selecione a planilha para validar e visualizar os registros antes de confirmar.</p><div id="di-upload-previa" style="overflow:auto"></div></section>
   <div class="table-card">
     <div class="table-header-row">
       <span class="tit">Diárias — Consulta Detalhada</span>
@@ -1125,7 +1125,7 @@ async function fazerLoginUI(){
     var r = await fetch(_authURL({acao:'login', usuario:u, senha:s}));
     var j = await r.json();
     if(!j.ok){ erro.textContent = j.erro || 'Falha no login.'; btn.textContent='Entrar'; btn.disabled=false; return; }
-    SESSAO = { usuario:j.usuario, nome:j.nome, perfil:j.perfil, abas:j.abas||['visao'] };
+    SESSAO = { tokenImportacao:j.tokenImportacao, usuario:j.usuario, nome:j.nome, perfil:j.perfil, abas:j.abas||['visao'] };
     try{ sessionStorage.setItem('cpe_sessao', JSON.stringify(SESSAO)); }catch(e){}
     _aplicarSessao();
   }catch(e){
@@ -3353,6 +3353,127 @@ diRadarRender=function(base,filtrados){
  if(typeof Chart==='undefined'){document.getElementById('di-terceiro-aviso').textContent+=' Gráfico indisponível. Use os botões com nomes abaixo.';return;}
  chartInstances.diRadarMilitares=new Chart(canvas,{type:itens.length>=3?'radar':'bar',data:{labels:itens.map(function(x){return x.nome+' · '+x.id;}),datasets:[{label:'Valor recebido (R$)',data:itens.map(function(x){return x.custo;}),borderColor:'#222',backgroundColor:'rgba(30,30,30,.12)',pointRadius:6,pointHitRadius:18,pointBackgroundColor:itens.map(function(x){return x.custo>media?'#C0392B':'#222';})},{label:'Média de todo o grupo (R$)',data:itens.map(function(){return media;}),borderColor:'#9A8A5A',backgroundColor:'rgba(154,138,90,.12)',borderDash:[5,4]}]},options:{responsive:true,maintainAspectRatio:false,onClick:function(e,points){if(points.length)diRadarSelecionar('militar',itens[points[0].index].id);},plugins:{tooltip:{callbacks:{label:function(c){return c.dataset.label+': '+_diMoeda(c.raw);}}}},scales:itens.length>=3?{r:{beginAtZero:true,pointLabels:{font:{size:11},callback:function(label){return label.match(/.{1,24}(?:\s|$)|.{1,24}/g)||label;}}}}:{y:{beginAtZero:true}}}});
 };
+
+</script>
+<script>
+// Mesmo contrato de dados no navegador e no servidor.
+var CPE_DI_COLS_=[
+ ['convenio','CONVENIO','CONVENIOS'],['cota','COTA'],['status','STATUS'],['unidade','UNIDADE'],
+ ['tipoDilig','TIPO DILIGENCIA','TIPO DE DILIGENCIA'],['distancia','DISTANCIA'],['origem','ORIGEM'],['destino','DESTINO'],
+ ['inicio','INICIO'],['termino','TERMINO'],['numPolicia','NUM POLICIA','NUMERO POLICIA','N POLICIA'],
+ ['postoGrad','POSTO GRAD','POSTO GRADUACAO'],['nome','NOME'],
+ ['numDiarias','NUM DIARIAS','NUMERO DIARIAS','NUM DIARIAS PREVISTAS','QTD DIARIAS'],
+ ['vlrDiaria','VLR DIARIA','VALOR DIARIA'],['custo','CUSTO PARTICIPANTE','CUSTO','VALOR TOTAL']
+];
+function cpeNorm_(v){return String(v==null?'':v).normalize('NFD').replace(/[\u0300-\u036f]/g,'').toUpperCase().replace(/[^A-Z0-9]/g,' ').replace(/\s+/g,' ').trim();}
+function cpeNumero_(v){
+ if(typeof v==='number'&&isFinite(v)&&v>=0)return v;
+ var s=String(v==null?'':v).replace(/R\$/gi,'').replace(/\s/g,'');
+ if(!s)throw Error('Valor numérico vazio.');
+ if(s.includes(','))s=s.replace(/\./g,'').replace(',','.');
+ if(!/^\d+(\.\d+)?$/.test(s)||!isFinite(Number(s)))throw Error('Número inválido: '+s);
+ return Number(s);
+}
+function cpeData_(v,opcional){
+ var s=String(v==null?'':v).trim();if(!s&&opcional)return '';
+ var m=s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})(?:\s+(\d{1,2}):(\d{2})(?::\d{2})?)?$/);
+ if(!m)throw Error('Data inválida: '+s+'. Use dia/mês/ano.');
+ var d=new Date(Date.UTC(+m[3],+m[2]-1,+m[1]));
+ if(d.getUTCDate()!==+m[1]||d.getUTCMonth()!==+m[2]-1||+m[3]<1900||+m[4]>23||+m[5]>59)throw Error('Data inexistente: '+s);
+ return String(m[1]).padStart(2,'0')+'/'+String(m[2]).padStart(2,'0')+'/'+m[3]+(m[4]?' '+m[4].padStart(2,'0')+':'+m[5]:'');
+}
+function cpeValidarMatriz_(matriz){
+ if(!Array.isArray(matriz)||matriz.length>5020)throw Error('Limite: 5.000 registros por importação.');
+ var header=-1,indices;
+ for(var i=0;i<Math.min(10,matriz.length);i++){
+  if(!Array.isArray(matriz[i]))throw Error('Formato de linhas inválido.');
+  var hs=matriz[i].map(cpeNorm_);
+  if(hs.includes('NOME')&&hs.includes('INICIO')){header=i;indices=CPE_DI_COLS_.map(function(c){return hs.findIndex(function(h){return c.slice(1).includes(h);});});break;}
+ }
+ if(header<0)throw Error('Cabeçalho não encontrado. Use o modelo atual de Diárias (NOME, INICIO etc.).');
+ var required=['convenio','tipoDilig','inicio','numPolicia','postoGrad','nome','numDiarias','custo'];
+ var missing=CPE_DI_COLS_.filter(function(c,i){return required.includes(c[0])&&indices[i]<0;});
+ if(missing.length)throw Error('Colunas ausentes: '+missing.map(function(c){return c[1];}).join(', '));
+ var rows=[],ignored=0;
+ for(var r=header+1;r<matriz.length;r++){
+  var line=matriz[r];if(!Array.isArray(line)||line.length>100)throw Error('Linha inválida: '+(r+1));
+  if(line.every(function(v){return v==null||String(v).trim()==='';})){ignored++;continue;}
+  var x={};CPE_DI_COLS_.forEach(function(c,i){var v=indices[i]<0?'':line[indices[i]];if(v!=null&&typeof v!=='string'&&typeof v!=='number')throw Error('Célula inválida na linha '+(r+1));x[c[0]]=v==null?'':v;});
+  try{
+   if(!String(x.nome).trim())throw Error('Nome vazio.');
+   x.inicio=cpeData_(x.inicio,false);x.termino=cpeData_(x.termino,true);
+   ['custo','numDiarias'].forEach(function(k){x[k]=cpeNumero_(x[k]);});
+   x.vlrDiaria=x.vlrDiaria===''?0:cpeNumero_(x.vlrDiaria);
+   CPE_DI_COLS_.forEach(function(c){if(!['custo','numDiarias','vlrDiaria'].includes(c[0])){x[c[0]]=String(x[c[0]]).trim();if(x[c[0]].length>500)throw Error('Texto maior que 500 caracteres.');}});
+  }catch(e){throw Error('Linha '+(r+1)+': '+e.message);}
+  rows.push(x);
+ }
+ if(!rows.length||rows.length>5000)throw Error('Envie entre 1 e 5.000 registros.');
+ return {registros:rows,vazias:ignored,total:rows.reduce(function(s,x){return s+x.custo;},0)};
+}
+
+async function cpeEnviarUpload(dados){
+ if(!SESSAO.tokenImportacao)throw Error('Saia e entre novamente para autorizar a importação. Confira também se o GS atualizado foi publicado.');
+ var res=await fetch(APPS_SCRIPT_URL,{method:'POST',redirect:'follow',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify({acao:'importarDiarias',token:SESSAO.tokenImportacao,dados:dados})});
+ if(!res.ok)throw Error('Falha HTTP '+res.status);return res.json();}
+var CPE_UPLOAD={matriz:null,id:null,busy:false,seq:0};
+var cpeDiFonteAnterior=null;
+var cpePopularAnterior=_diPopularSelects;
+_diPopularSelects=function(dados){
+ if(cpeDiFonteAnterior!==DADOS.diarias){
+  cpeDiFonteAnterior=DADOS.diarias;
+  var ids=['di-f-posto','di-f-convenio','di-f-unidade','di-f-ano'],saved={};
+  ids.forEach(function(id){var el=document.getElementById(id);if(el){saved[id]=el.value;while(el.options.length>1)el.remove(1);}});
+  _diPop=false;cpePopularAnterior(dados);
+  ids.forEach(function(id){var el=document.getElementById(id);if(el)el.value=Array.from(el.options).some(function(o){return o.value===saved[id];})?saved[id]:'';});
+ }else cpePopularAnterior(dados);
+};
+function cpeUploadStatus(text){document.getElementById('di-upload-status').textContent=text;}
+function cpeUploadLimpar(){CPE_UPLOAD.matriz=null;CPE_UPLOAD.id=null;document.getElementById('di-upload-confirmar').disabled=true;document.getElementById('di-upload-previa').replaceChildren();}
+async function cpeLerUpload(){
+ var seq=++CPE_UPLOAD.seq;cpeUploadLimpar();var file=document.getElementById('di-upload-arquivo').files[0];if(!file)return;
+ try{
+  if(!/\.(xlsx|xls)$/i.test(file.name))throw Error('Selecione um arquivo .xls ou .xlsx.');
+  if(file.size>10*1024*1024)throw Error('Arquivo maior que 10 MB.');
+  cpeUploadStatus('Lendo e validando a planilha…');
+  if(!window.XLSX){await new Promise(function(resolve,reject){var s=document.createElement('script');s.src='https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js';s.onload=resolve;s.onerror=function(){reject(Error('Não foi possível carregar o leitor de Excel. Tente novamente.'));};document.head.appendChild(s);});}
+  var wb=XLSX.read(await file.arrayBuffer(),{type:'array',cellDates:true,cellFormula:true});if(seq!==CPE_UPLOAD.seq)return;
+  var candidates=wb.SheetNames.filter(function(n){return cpeNorm_(n).includes('DIARIA');});
+  if(!candidates.length&&wb.SheetNames.length===1)candidates=wb.SheetNames.slice();
+  if(candidates.length!==1)throw Error('Mantenha uma única aba chamada DIÁRIAS no arquivo para identificar os dados.');
+  var sh=wb.Sheets[candidates[0]],range=XLSX.utils.decode_range(sh['!ref']||'A1');
+  if(range.e.r>5019||range.e.c>99)throw Error('Planilha excede 5.000 registros ou 100 colunas. Remova linhas/colunas excedentes.');
+  var matriz=XLSX.utils.sheet_to_json(sh,{header:1,defval:'',raw:true}).map(function(r){return r.map(function(v){if(v instanceof Date){if(isNaN(v))throw Error('Data Excel inválida.');return String(v.getDate()).padStart(2,'0')+'/'+String(v.getMonth()+1).padStart(2,'0')+'/'+v.getFullYear()+' '+String(v.getHours()).padStart(2,'0')+':'+String(v.getMinutes()).padStart(2,'0');}return v;});});
+  var parsed=cpeValidarMatriz_(matriz);
+  // Transfere somente as colunas conhecidas, mantendo os números como números.
+  matriz=[CPE_DI_COLS_.map(function(c){return c[1];})].concat(parsed.registros.map(function(x){return CPE_DI_COLS_.map(function(c){return x[c[0]];});}));
+  if(JSON.stringify(matriz).length>3900000)throw Error('Dados excedem 4 MB.');
+  CPE_UPLOAD.matriz=matriz;CPE_UPLOAD.id=crypto.randomUUID();CPE_UPLOAD.arquivo=file.name;
+  var table=document.createElement('table');table.className='di-tbl';
+  var head=document.createElement('tr');['Nome','Posto/graduação','Início','Diárias','Valor total'].forEach(function(v){var th=document.createElement('th');th.textContent=v;head.appendChild(th);});table.appendChild(head);
+  parsed.registros.slice(0,10).forEach(function(x){var tr=document.createElement('tr');[x.nome,x.postoGrad,x.inicio,x.numDiarias,_diMoeda(x.custo)].forEach(function(v){var td=document.createElement('td');td.textContent=v;tr.appendChild(td);});table.appendChild(tr);});
+  document.getElementById('di-upload-previa').appendChild(table);
+  cpeUploadStatus(parsed.registros.length+' registros válidos · Total '+_diMoeda(parsed.total)+'. Prévia das primeiras 10 linhas. A confirmação substituirá o conjunto de Diárias exibido para todos, incluindo períodos anteriores. Envie a base completa.');
+  document.getElementById('di-upload-confirmar').disabled=false;
+ }catch(e){if(seq===CPE_UPLOAD.seq){cpeUploadLimpar();cpeUploadStatus(e.message);}}
+}
+async function cpeConfirmarUpload(){
+ if(CPE_UPLOAD.busy||!CPE_UPLOAD.matriz)return;
+ if(!SESSAO||!SESSAO.abas||!SESSAO.abas.includes('diarias')){cpeUploadStatus('Entre com um usuário autorizado a acessar Diárias.');return;}
+ CPE_UPLOAD.busy=true;document.getElementById('di-upload-confirmar').disabled=true;document.getElementById('di-upload-arquivo').disabled=true;
+ try{
+  cpeUploadStatus('Publicando a nova base compartilhada…');
+  var r=await cpeEnviarUpload({matriz:CPE_UPLOAD.matriz,id:CPE_UPLOAD.id,arquivo:CPE_UPLOAD.arquivo});
+  if(!r||!r.ok)throw Error(r&&r.erro||'Não foi possível confirmar a atualização.');
+  cpeUploadLimpar();document.getElementById('di-upload-arquivo').value='';
+  DI_RADAR.selecao={};limparFiltrosDiarias();
+  if(_cpeConsulta)await _cpeConsulta;await carregarDados(true);
+  cpeUploadStatus('Base publicada: '+r.quantidade+' registros. Os demais usuários recebem a atualização ao atualizar os dados ou na sincronização automática.');
+ }catch(e){cpeUploadStatus('Envio não confirmado: '+e.message+' Você pode tentar novamente; o mesmo envio não será duplicado.');document.getElementById('di-upload-confirmar').disabled=!CPE_UPLOAD.matriz;}
+ finally{CPE_UPLOAD.busy=false;document.getElementById('di-upload-arquivo').disabled=false;}
+}
+document.getElementById('di-upload-arquivo').addEventListener('change',cpeLerUpload);
+document.getElementById('di-upload-confirmar').addEventListener('click',cpeConfirmarUpload);
 
 </script>
 </body>
