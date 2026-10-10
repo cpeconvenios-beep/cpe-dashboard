@@ -3382,6 +3382,15 @@ function cpeData_(v,opcional){
  if(d.getUTCDate()!==+m[1]||d.getUTCMonth()!==+m[2]-1||+m[3]<1900||+m[4]>23||+m[5]>59)throw Error('Data inexistente: '+s);
  return String(m[1]).padStart(2,'0')+'/'+String(m[2]).padStart(2,'0')+'/'+m[3]+(m[4]?' '+m[4].padStart(2,'0')+':'+m[5]:'');
 }
+function cpeRodape_(line){
+ if(!Array.isArray(line))return false;
+ var cells=line.filter(function(v){return v!=null&&String(v).trim()!=='';});
+ if(!cells.length)return true;
+ if(cells.length===2&&cpeNorm_(cells[0])==='TOTAL'){try{cpeNumero_(cells[1]);return true;}catch(e){return false;}}
+ if(cells.length!==1)return false;
+ var s=String(cells[0]).trim();
+ return /^_{3,}$/.test(s)||/^_{3,},\s*_{2,}\s+de\s+_{3,}\s+de\s+_{3,}$/i.test(s)||/^COMANDANTE DO _+[oº°] BPM$/i.test(s);
+}
 function cpeValidarMatriz_(matriz){
  if(!Array.isArray(matriz)||matriz.length>5020)throw Error('Limite: 5.000 registros por importação.');
  var header=-1,indices;
@@ -3394,10 +3403,12 @@ function cpeValidarMatriz_(matriz){
  var required=['convenio','tipoDilig','inicio','numPolicia','postoGrad','nome','numDiarias','custo'];
  var missing=CPE_DI_COLS_.filter(function(c,i){return required.includes(c[0])&&indices[i]<0;});
  if(missing.length)throw Error('Colunas ausentes: '+missing.map(function(c){return c[1];}).join(', '));
- var rows=[],ignored=0;
+ var rows=[],ignored=0,rodapes=0,tail=matriz.length;
+ while(tail>header+1&&cpeRodape_(matriz[tail-1]))tail--;
  for(var r=header+1;r<matriz.length;r++){
   var line=matriz[r];if(!Array.isArray(line)||line.length>100)throw Error('Linha inválida: '+(r+1));
   if(line.every(function(v){return v==null||String(v).trim()==='';})){ignored++;continue;}
+  if(r>=tail){rodapes++;continue;}
   var x={};CPE_DI_COLS_.forEach(function(c,i){var v=indices[i]<0?'':line[indices[i]];if(v!=null&&typeof v!=='string'&&typeof v!=='number')throw Error('Célula inválida na linha '+(r+1));x[c[0]]=v==null?'':v;});
   try{
    if(!String(x.nome).trim())throw Error('Nome vazio.');
@@ -3409,7 +3420,7 @@ function cpeValidarMatriz_(matriz){
   rows.push(x);
  }
  if(!rows.length||rows.length>5000)throw Error('Envie entre 1 e 5.000 registros.');
- return {registros:rows,vazias:ignored,total:rows.reduce(function(s,x){return s+x.custo;},0)};
+ return {registros:rows,vazias:ignored,rodapes:rodapes,total:rows.reduce(function(s,x){return s+x.custo;},0)};
 }
 
 async function cpeEnviarUpload(dados){
@@ -3453,7 +3464,7 @@ async function cpeLerUpload(){
   var head=document.createElement('tr');['Nome','Posto/graduação','Início','Diárias','Valor total'].forEach(function(v){var th=document.createElement('th');th.textContent=v;head.appendChild(th);});table.appendChild(head);
   parsed.registros.slice(0,10).forEach(function(x){var tr=document.createElement('tr');[x.nome,x.postoGrad,x.inicio,x.numDiarias,_diMoeda(x.custo)].forEach(function(v){var td=document.createElement('td');td.textContent=v;tr.appendChild(td);});table.appendChild(tr);});
   document.getElementById('di-upload-previa').appendChild(table);
-  cpeUploadStatus(parsed.registros.length+' registros válidos · Total '+_diMoeda(parsed.total)+'. Prévia das primeiras 10 linhas. Ao enviar, os novos registros serão acrescentados à base existente. Registros idênticos serão ignorados.');
+  cpeUploadStatus(parsed.registros.length+' registros válidos · '+parsed.rodapes+' linhas de rodapé ignoradas · Total '+_diMoeda(parsed.total)+'. Prévia das primeiras 10 linhas. Ao enviar, os novos registros serão acrescentados à base existente. Registros idênticos serão ignorados.');
   document.getElementById('di-upload-confirmar').disabled=false;
  }catch(e){if(seq===CPE_UPLOAD.seq){cpeUploadLimpar();cpeUploadStatus(e.message);}}
 }
