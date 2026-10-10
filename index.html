@@ -995,7 +995,7 @@ body.cpe-layout-teste .convenio-card .detail-line.retencao-cmd-geral span{color:
   </div>
 </div>
 
-<div class="tab-content" id="tab-content-diarias"><section id="di-upload" style="margin:16px;padding:20px;border:1px solid #D4CDB8;border-radius:10px;background:white"><h3>Atualizar planilha de Diárias</h3><p>Envie a base completa no modelo atual. A atualização valerá para todos os usuários. A base anterior será preservada.</p><label for="di-upload-arquivo">Planilha Excel (.xls ou .xlsx, até 10 MB)</label> <input id="di-upload-arquivo" type="file" accept=".xls,.xlsx"><button id="di-upload-confirmar" type="button" disabled style="background:#0A0A0A;color:#d5c28d;padding:10px 16px;margin:12px;border:1px solid #9A8A5A">Confirmar atualização para todos</button><p id="di-upload-status" role="status" aria-live="polite">Selecione a planilha para validar e visualizar os registros antes de confirmar.</p><div id="di-upload-previa" style="overflow:auto"></div></section>
+<div class="tab-content" id="tab-content-diarias"><section id="di-upload" style="margin:16px;padding:20px;border:1px solid #D4CDB8;border-radius:10px;background:white"><h3>Atualizar planilha de Diárias</h3><p>Envie novos registros no modelo atual. Eles serão adicionados à base compartilhada, preservando os dados existentes. Registros idênticos não serão duplicados.</p><label for="di-upload-arquivo">Planilha Excel (.xls ou .xlsx, até 10 MB)</label> <input id="di-upload-arquivo" type="file" accept=".xls,.xlsx"><button id="di-upload-confirmar" type="button" style="background:#0A0A0A;color:#d5c28d;padding:10px 16px;margin:12px;border:1px solid #9A8A5A">Enviar e complementar a base</button><p id="di-upload-status" role="status" aria-live="polite">Selecione a planilha para validar e visualizar os registros antes de confirmar.</p><div id="di-upload-previa" style="overflow:auto"></div></section>
   <div class="table-card">
     <div class="table-header-row">
       <span class="tit">Diárias — Consulta Detalhada</span>
@@ -3429,14 +3429,14 @@ _diPopularSelects=function(dados){
  }else cpePopularAnterior(dados);
 };
 function cpeUploadStatus(text){document.getElementById('di-upload-status').textContent=text;}
-function cpeUploadLimpar(){CPE_UPLOAD.matriz=null;CPE_UPLOAD.id=null;document.getElementById('di-upload-confirmar').disabled=true;document.getElementById('di-upload-previa').replaceChildren();}
+function cpeUploadLimpar(){CPE_UPLOAD.matriz=null;CPE_UPLOAD.id=null;document.getElementById('di-upload-confirmar').disabled=false;document.getElementById('di-upload-previa').replaceChildren();}
 async function cpeLerUpload(){
- var seq=++CPE_UPLOAD.seq;cpeUploadLimpar();var file=document.getElementById('di-upload-arquivo').files[0];if(!file)return;
+ var seq=++CPE_UPLOAD.seq;cpeUploadLimpar();var file=document.getElementById('di-upload-arquivo').files[0];if(!file){cpeUploadStatus('Escolha uma planilha .xls ou .xlsx para carregar.');return;}
  try{
   if(!/\.(xlsx|xls)$/i.test(file.name))throw Error('Selecione um arquivo .xls ou .xlsx.');
   if(file.size>10*1024*1024)throw Error('Arquivo maior que 10 MB.');
   cpeUploadStatus('Lendo e validando a planilha…');
-  if(!window.XLSX){await new Promise(function(resolve,reject){var s=document.createElement('script');s.src='https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js';s.onload=resolve;s.onerror=function(){reject(Error('Não foi possível carregar o leitor de Excel. Tente novamente.'));};document.head.appendChild(s);});}
+  if(!window.XLSX){await new Promise(function(resolve,reject){var s=document.createElement('script');s.src='https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js';var timer=setTimeout(function(){s.remove();reject(Error('O leitor Excel demorou para carregar. Verifique a conexão e tente novamente.'));},20000);s.onload=function(){clearTimeout(timer);resolve();};s.onerror=function(){clearTimeout(timer);reject(Error('Não foi possível carregar o leitor de Excel. Tente novamente.'));};document.head.appendChild(s);});}
   var wb=XLSX.read(await file.arrayBuffer(),{type:'array',cellDates:true,cellFormula:true});if(seq!==CPE_UPLOAD.seq)return;
   var candidates=wb.SheetNames.filter(function(n){return cpeNorm_(n).includes('DIARIA');});
   if(!candidates.length&&wb.SheetNames.length===1)candidates=wb.SheetNames.slice();
@@ -3448,17 +3448,19 @@ async function cpeLerUpload(){
   // Transfere somente as colunas conhecidas, mantendo os números como números.
   matriz=[CPE_DI_COLS_.map(function(c){return c[1];})].concat(parsed.registros.map(function(x){return CPE_DI_COLS_.map(function(c){return x[c[0]];});}));
   if(JSON.stringify(matriz).length>3900000)throw Error('Dados excedem 4 MB.');
-  CPE_UPLOAD.matriz=matriz;CPE_UPLOAD.id=crypto.randomUUID();CPE_UPLOAD.arquivo=file.name;
+  CPE_UPLOAD.matriz=matriz;CPE_UPLOAD.id=typeof crypto.randomUUID==='function'?crypto.randomUUID():'10000000-1000-4000-8000-100000000000'.replace(/[018]/g,function(c){return (c^crypto.getRandomValues(new Uint8Array(1))[0]&15>>c/4).toString(16);});CPE_UPLOAD.arquivo=file.name;
   var table=document.createElement('table');table.className='di-tbl';
   var head=document.createElement('tr');['Nome','Posto/graduação','Início','Diárias','Valor total'].forEach(function(v){var th=document.createElement('th');th.textContent=v;head.appendChild(th);});table.appendChild(head);
   parsed.registros.slice(0,10).forEach(function(x){var tr=document.createElement('tr');[x.nome,x.postoGrad,x.inicio,x.numDiarias,_diMoeda(x.custo)].forEach(function(v){var td=document.createElement('td');td.textContent=v;tr.appendChild(td);});table.appendChild(tr);});
   document.getElementById('di-upload-previa').appendChild(table);
-  cpeUploadStatus(parsed.registros.length+' registros válidos · Total '+_diMoeda(parsed.total)+'. Prévia das primeiras 10 linhas. A confirmação substituirá o conjunto de Diárias exibido para todos, incluindo períodos anteriores. Envie a base completa.');
+  cpeUploadStatus(parsed.registros.length+' registros válidos · Total '+_diMoeda(parsed.total)+'. Prévia das primeiras 10 linhas. Ao enviar, os novos registros serão acrescentados à base existente. Registros idênticos serão ignorados.');
   document.getElementById('di-upload-confirmar').disabled=false;
  }catch(e){if(seq===CPE_UPLOAD.seq){cpeUploadLimpar();cpeUploadStatus(e.message);}}
 }
 async function cpeConfirmarUpload(){
- if(CPE_UPLOAD.busy||!CPE_UPLOAD.matriz)return;
+ if(CPE_UPLOAD.busy)return;
+ if(CPE_UPLOAD.reading){cpeUploadStatus('Aguarde a leitura e validação do arquivo.');return;}
+ if(!CPE_UPLOAD.matriz){await cpeLerUpload();return;}
  if(!SESSAO||!SESSAO.abas||!SESSAO.abas.includes('diarias')){cpeUploadStatus('Entre com um usuário autorizado a acessar Diárias.');return;}
  CPE_UPLOAD.busy=true;document.getElementById('di-upload-confirmar').disabled=true;document.getElementById('di-upload-arquivo').disabled=true;
  try{
@@ -3468,11 +3470,11 @@ async function cpeConfirmarUpload(){
   cpeUploadLimpar();document.getElementById('di-upload-arquivo').value='';
   DI_RADAR.selecao={};limparFiltrosDiarias();
   if(_cpeConsulta)await _cpeConsulta;await carregarDados(true);
-  cpeUploadStatus('Base publicada: '+r.quantidade+' registros. Os demais usuários recebem a atualização ao atualizar os dados ou na sincronização automática.');
+  cpeUploadStatus('Base atualizada: '+r.adicionados+' novos registros; '+r.repetidos+' repetidos ignorados; '+r.quantidade+' registros no total. Os demais usuários recebem a atualização ao atualizar os dados ou na sincronização automática.');
  }catch(e){cpeUploadStatus('Envio não confirmado: '+e.message+' Você pode tentar novamente; o mesmo envio não será duplicado.');document.getElementById('di-upload-confirmar').disabled=!CPE_UPLOAD.matriz;}
  finally{CPE_UPLOAD.busy=false;document.getElementById('di-upload-arquivo').disabled=false;}
 }
-document.getElementById('di-upload-arquivo').addEventListener('change',cpeLerUpload);
+document.getElementById('di-upload-arquivo').addEventListener('change',async function(){CPE_UPLOAD.reading=true;try{await cpeLerUpload();}finally{CPE_UPLOAD.reading=false;}});
 document.getElementById('di-upload-confirmar').addEventListener('click',cpeConfirmarUpload);
 
 </script>
