@@ -3489,5 +3489,31 @@ document.getElementById('di-upload-arquivo').addEventListener('change',async fun
 document.getElementById('di-upload-confirmar').addEventListener('click',cpeConfirmarUpload);
 
 </script>
-</body>
+<script>
+async function cpeGerencia(acao,dados){
+ if(typeof chamarServidor==='function')return chamarServidor(acao,dados||{});
+ if(!SESSAO||!SESSAO.tokenImportacao)throw Error('Saia e entre novamente para autorizar a gestão de acessos.');
+ var r=await fetch(APPS_SCRIPT_URL,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify({acao:acao,token:SESSAO.tokenImportacao,dados:dados||{}})});
+ var j=await r.json();if(j.ok===false)throw Error(j.erro||'Falha ao salvar.');return j;
+}
+carregarUsuarios=async function(){
+ var cont=document.getElementById('usuarios-lista');cont.textContent='Carregando usuários…';
+ try{
+ var lista=await cpeGerencia('listarUsuarios');if(!Array.isArray(lista))throw Error('Atualize o código GS da Gerência.');cont.replaceChildren();
+ document.getElementById('usuarios-total').textContent=lista.length+' usuário(s)';
+ lista.forEach(function(u){
+ var box=document.createElement('section');box.style.cssText='padding:18px;margin:12px 0;border:1px solid #D4CDB8;border-radius:10px;background:white';
+ var title=document.createElement('h3');title.textContent=u.nome+' — '+u.usuario+(u.usuario===SESSAO.usuario?' (você)':'');box.appendChild(title);
+ var status=document.createElement('p');status.textContent=u.status==='APROVADO'?'Aprovado — marque ou desmarque os acessos e salve.':'Pendente — selecione os acessos e aprove.';box.appendChild(status);
+ var group=document.createElement('div');group.style.cssText='display:flex;flex-wrap:wrap;gap:16px;margin:16px 0';var checks=[];
+ TODAS_ABAS.forEach(function(ab){var label=document.createElement('label');label.style.cssText='display:flex;gap:7px;align-items:center;cursor:pointer';var cb=document.createElement('input');cb.type='checkbox';cb.value=ab;cb.checked=(u.abas||[]).includes(ab);if(u.usuario===SESSAO.usuario&&ab==='usuarios'){cb.disabled=true;label.title='Mantenha seu acesso à Gerência para não bloquear a administração.';}checks.push(cb);label.appendChild(cb);label.appendChild(document.createTextNode(NOMES_ABAS[ab]||ab));group.appendChild(label);});box.appendChild(group);
+ var msg=document.createElement('p');msg.setAttribute('role','status');var save=document.createElement('button');save.textContent=u.status==='APROVADO'?'Salvar acessos':'Aprovar e salvar acessos';save.style.cssText='background:#0A0A0A;color:#d5c28d;border:1px solid #9A8A5A;padding:10px 16px;cursor:pointer';
+ save.onclick=async function(){save.disabled=true;checks.forEach(function(c){c.disabled=true;});msg.textContent='Salvando…';try{var abas=checks.filter(function(c){return c.checked;}).map(function(c){return c.value;});var r=await cpeGerencia(u.status==='APROVADO'?'alterarPermissoes':'aprovar',{usuario:u.usuario,abas:JSON.stringify(abas)});if(r.ok===false)throw Error(r.erro);u.status='APROVADO';u.abas=r.abas;save.textContent='Salvar acessos';status.textContent='Aprovado';msg.textContent=abas.length?'Acessos salvos.':'Todos os acessos deste usuário foram revogados.';if(u.usuario===SESSAO.usuario){if(typeof sincronizarPermissoes==='function')sincronizarPermissoes({abas:r.abas});else{SESSAO.abas=r.abas;sessionStorage.setItem('cpe_sessao',JSON.stringify(SESSAO));TODAS_ABAS.forEach(function(ab){document.getElementById('tab-'+ab).style.display=r.abas.includes(ab)?'':'none';});}}}catch(e){msg.textContent=e.message;}finally{save.disabled=false;checks.forEach(function(c){c.disabled=u.usuario===SESSAO.usuario&&c.value==='usuarios';});}};
+ box.appendChild(save);
+ if(u.usuario!==SESSAO.usuario){var remove=document.createElement('button');remove.textContent='Remover usuário';remove.style.cssText='margin-left:12px;padding:10px;color:#C0392B';remove.onclick=async function(){if(!confirm('Remover o usuário '+u.usuario+'?'))return;remove.disabled=true;try{await cpeGerencia('remover',{usuario:u.usuario});await carregarUsuarios();}catch(e){msg.textContent=e.message;remove.disabled=false;}};box.appendChild(remove);}
+ box.appendChild(msg);cont.appendChild(box);
+ });
+ }catch(e){cont.textContent=e.message;}
+};
+</script></body>
 </html>
