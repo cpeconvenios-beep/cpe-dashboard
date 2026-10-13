@@ -641,7 +641,7 @@ body.cpe-layout-teste .convenio-card .detail-line.retencao-cmd-geral span{color:
   <button class="tab-btn" onclick="showTab('demandas')" id="tab-demandas"><span class="tab-icon">☷</span> Demandas</button>
   <button class="tab-btn" onclick="showTab('diarias')" id="tab-diarias"><span class="tab-icon">↔</span> Diárias</button>
   <button class="tab-btn" onclick="showTab('usuarios')" id="tab-usuarios" style="display:none;"><span class="tab-icon">⚙</span> Gerência de usuários</button>
-  <button onclick="logoutUI()" id="btn-logout" style="display:none;margin-left:auto;background:#C0392B;color:#fff;border:none;border-radius:6px;padding:6px 14px;font-size:12px;font-weight:700;cursor:pointer;">Sair</button>
+  <button class="tab-btn" id="tab-perfil" style="display:none"><span class="tab-icon">♙</span> Meu perfil</button><button onclick="logoutUI()" id="btn-logout" style="display:none;margin-left:auto;background:#C0392B;color:#fff;border:none;border-radius:6px;padding:6px 14px;font-size:12px;font-weight:700;cursor:pointer;">Sair</button>
 </nav>
 <button class="cpe-menu-toggle" type="button" aria-label="Abrir ou fechar menu" aria-expanded="false" onclick="var aberto=document.body.classList.toggle('cpe-menu-open');this.setAttribute('aria-expanded',String(aberto));">☰</button>
 <div class="sticky-header">
@@ -651,7 +651,7 @@ body.cpe-layout-teste .convenio-card .detail-line.retencao-cmd-geral span{color:
     <div class="sub">Estado-Maior do CPE | Exercício 2026</div>
     <h1>Gestão à Vista CPE</h1>
   </div>
-  <div class="top-bar-right">
+  <div class="top-bar-right"><button id="cpe-identidade" type="button" hidden style="display:block;margin:0 0 8px auto;background:#0A0A0A;color:#d5c28d;border:1px solid #9A8A5A;padding:8px 12px;cursor:pointer" aria-label="Abrir meu perfil"></button>
     <button class="btn-atualizar" onclick="carregarDados(true)">⟳ Atualizar Dados</button>
     <div class="atualizado" id="ultima-atualizacao">Carregando...</div>
   </div>
@@ -3515,5 +3515,33 @@ carregarUsuarios=async function(){
  });
  }catch(e){cont.textContent=e.message;}
 };
+</script><section class="tab-content" id="tab-content-perfil"><div style="max-width:780px;margin:24px auto;padding:24px;background:white;border:1px solid #D4CDB8;border-radius:12px"><h2>Meu perfil</h2><div id="cpe-perfil-dados" style="line-height:2;margin:20px 0"></div><hr><h3 style="margin:20px 0">Alterar minha senha</h3><form id="cpe-senha-form" style="display:grid;gap:12px;max-width:420px"><label>Senha atual<input id="cpe-senha-atual" type="password" autocomplete="current-password" required style="display:block;padding:10px;width:100%"></label><label>Nova senha (mínimo de 8 caracteres)<input id="cpe-senha-nova" type="password" minlength="8" maxlength="200" autocomplete="new-password" required style="display:block;padding:10px;width:100%"></label><label>Confirmar nova senha<input id="cpe-senha-confirma" type="password" minlength="8" maxlength="200" autocomplete="new-password" required style="display:block;padding:10px;width:100%"></label><button id="cpe-senha-salvar" style="padding:12px;background:#0A0A0A;color:#d5c28d;border:1px solid #9A8A5A">Salvar nova senha</button><p id="cpe-perfil-msg" role="status" aria-live="polite"></p></form></div></section><script>
+function cpeIdentidade(){
+ var el=document.getElementById('cpe-identidade'),btn=document.getElementById('tab-perfil');
+ el.hidden=!SESSAO;btn.style.display=SESSAO?'':'none';
+ if(SESSAO)el.textContent=(SESSAO.nome||'Usuário')+' · Nº '+SESSAO.usuario;
+}
+var cpeAplicarAntes=_aplicarSessao;
+_aplicarSessao=function(){cpeAplicarAntes();cpeIdentidade();if(SESSAO&&!(SESSAO.abas||[]).length)showTab('perfil');};
+var cpeLogoutAntes=logoutUI;
+logoutUI=async function(){await cpeLogoutAntes();document.getElementById('cpe-senha-form').reset();document.getElementById('cpe-perfil-dados').replaceChildren();cpeIdentidade();};
+var cpeTabAntes=showTab;
+showTab=function(tab){if(tab!=='perfil')return cpeTabAntes(tab);if(!SESSAO)return;document.querySelectorAll('.tab-content,.tab-btn').forEach(function(el){el.classList.remove('active');});document.getElementById('tab-content-perfil').classList.add('active');document.getElementById('tab-perfil').classList.add('active');cpeCarregarPerfil();};
+async function cpeCarregarPerfil(){
+ var cont=document.getElementById('cpe-perfil-dados');cont.textContent='Carregando seu perfil…';document.getElementById('cpe-senha-form').reset();document.getElementById('cpe-perfil-msg').textContent='';
+ var dono=SESSAO&&SESSAO.usuario;
+ try{var u=await cpeGerencia('meuPerfil');if(!SESSAO||SESSAO.usuario!==dono)return;cont.replaceChildren();SESSAO.nome=u.nome;cpeIdentidade();
+ [['Nome',u.nome],['Número PM / login',u.usuario],['Perfil de acesso',u.perfil],['Situação',u.status],['Abas autorizadas',(u.abas||[]).map(function(ab){return NOMES_ABAS[ab]||ab;}).join(' · ')||'Somente Meu perfil']].forEach(function(pair){var p=document.createElement('p'),b=document.createElement('strong');b.textContent=pair[0]+': ';p.appendChild(b);p.appendChild(document.createTextNode(pair[1]||'Não informado'));cont.appendChild(p);});
+ }catch(e){cont.textContent=e.message;}
+}
+document.getElementById('cpe-identidade').onclick=function(){showTab('perfil');};
+document.getElementById('tab-perfil').onclick=function(){showTab('perfil');};
+document.getElementById('cpe-senha-form').onsubmit=async function(event){
+ event.preventDefault();var msg=document.getElementById('cpe-perfil-msg'),btn=document.getElementById('cpe-senha-salvar');var atual=document.getElementById('cpe-senha-atual'),nova=document.getElementById('cpe-senha-nova'),conf=document.getElementById('cpe-senha-confirma');
+ if(nova.value!==conf.value){msg.textContent='A confirmação da nova senha não confere.';return;}
+ btn.disabled=true;msg.textContent='Salvando…';
+ try{var r=await cpeGerencia('alterarMinhaSenha',{atual:atual.value,nova:nova.value});if(!r.ok)throw Error(r.erro);document.getElementById('cpe-senha-form').reset();msg.textContent='Senha alterada. Use a nova senha no próximo login.';}catch(e){msg.textContent=e.message;}finally{atual.value='';btn.disabled=false;}
+};
+cpeIdentidade();
 </script></body>
 </html>
