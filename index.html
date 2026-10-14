@@ -610,7 +610,7 @@ body.cpe-layout-teste .convenio-card .detail-line.retencao-cmd-geral span{color:
       <input id="lg-usuario" type="text" style="width:100%;box-sizing:border-box;border:1px solid #D4CDB8;border-radius:7px;padding:10px 12px;margin:5px 0 14px;font-size:14px;background:#FBFAF4;" autocomplete="username">
       <label style="font-size:11px;font-weight:700;color:#6B5B45;text-transform:uppercase;letter-spacing:.4px;">Senha</label>
       <input id="lg-senha" type="password" style="width:100%;box-sizing:border-box;border:1px solid #D4CDB8;border-radius:7px;padding:10px 12px;margin:5px 0 6px;font-size:14px;background:#FBFAF4;" autocomplete="current-password" onkeydown="if(event.key==='Enter')fazerLoginUI()">
-      <div id="lg-erro" style="color:#C0392B;font-size:12px;min-height:16px;margin-bottom:8px;"></div>
+      <button id="cpe-esqueci" type="button" style="background:none;border:0;color:#9A8A5A;margin:8px 0;cursor:pointer">Esqueci minha senha</button><div id="lg-erro" style="color:#C0392B;font-size:12px;min-height:16px;margin-bottom:8px;"></div>
       <button onclick="fazerLoginUI()" id="lg-btn" style="width:100%;background:#9A8A5A;color:#fff;border:none;border-radius:7px;padding:12px;font-size:14px;font-weight:700;cursor:pointer;letter-spacing:.5px;transition:background .2s;" onmouseover="this.style.background='#0A0A0A'" onmouseout="this.style.background='#9A8A5A'">ENTRAR</button>
       <div style="text-align:center;margin-top:16px;font-size:12px;color:#666;">Não tem acesso? <a href="#" onclick="_lgMostrar('cadastro');return false;" style="color:#9A8A5A;font-weight:700;text-decoration:none;">Criar cadastro</a></div>
     </div>
@@ -3515,7 +3515,7 @@ carregarUsuarios=async function(){
  });
  }catch(e){cont.textContent=e.message;}
 };
-</script><section class="tab-content" id="tab-content-perfil"><div style="max-width:780px;margin:24px auto;padding:24px;background:white;border:1px solid #D4CDB8;border-radius:12px"><h2>Meu perfil</h2><div id="cpe-perfil-dados" style="line-height:2;margin:20px 0"></div><hr><h3 style="margin:20px 0">Alterar minha senha</h3><form id="cpe-senha-form" style="display:grid;gap:12px;max-width:420px"><label>Senha atual<input id="cpe-senha-atual" type="password" autocomplete="current-password" required style="display:block;padding:10px;width:100%"></label><label>Nova senha (mínimo de 8 caracteres)<input id="cpe-senha-nova" type="password" minlength="8" maxlength="200" autocomplete="new-password" required style="display:block;padding:10px;width:100%"></label><label>Confirmar nova senha<input id="cpe-senha-confirma" type="password" minlength="8" maxlength="200" autocomplete="new-password" required style="display:block;padding:10px;width:100%"></label><button id="cpe-senha-salvar" style="padding:12px;background:#0A0A0A;color:#d5c28d;border:1px solid #9A8A5A">Salvar nova senha</button><p id="cpe-perfil-msg" role="status" aria-live="polite"></p></form></div></section><script>
+</script><section class="tab-content" id="tab-content-perfil"><div style="max-width:780px;margin:24px auto;padding:24px;background:white;border:1px solid #D4CDB8;border-radius:12px"><h2>Meu perfil</h2><div id="cpe-perfil-dados" style="line-height:2;margin:20px 0"></div><p id="cpe-email-perfil" role="status"></p><button id="cpe-email-editar" type="button">Cadastrar / confirmar e-mail</button><hr><h3 style="margin:20px 0">Alterar minha senha</h3><form id="cpe-senha-form" style="display:grid;gap:12px;max-width:420px"><label>Senha atual<input id="cpe-senha-atual" type="password" autocomplete="current-password" required style="display:block;padding:10px;width:100%"></label><label>Nova senha (mínimo de 8 caracteres)<input id="cpe-senha-nova" type="password" minlength="8" maxlength="200" autocomplete="new-password" required style="display:block;padding:10px;width:100%"></label><label>Confirmar nova senha<input id="cpe-senha-confirma" type="password" minlength="8" maxlength="200" autocomplete="new-password" required style="display:block;padding:10px;width:100%"></label><button id="cpe-senha-salvar" style="padding:12px;background:#0A0A0A;color:#d5c28d;border:1px solid #9A8A5A">Salvar nova senha</button><p id="cpe-perfil-msg" role="status" aria-live="polite"></p></form></div></section><script>
 function cpeIdentidade(){
  var el=document.getElementById('cpe-identidade'),btn=document.getElementById('tab-perfil');
  el.hidden=!SESSAO;btn.style.display=SESSAO?'':'none';
@@ -3543,5 +3543,28 @@ document.getElementById('cpe-senha-form').onsubmit=async function(event){
  try{var r=await cpeGerencia('alterarMinhaSenha',{atual:atual.value,nova:nova.value});if(!r.ok)throw Error(r.erro);document.getElementById('cpe-senha-form').reset();msg.textContent='Senha alterada. Use a nova senha no próximo login.';}catch(e){msg.textContent=e.message;}finally{atual.value='';btn.disabled=false;}
 };
 cpeIdentidade();
+</script><style>.cpe-email-dialog{max-width:480px;width:90%;padding:24px;border:1px solid #9A8A5A;border-radius:12px;color:#222;background:#fff}.cpe-email-dialog::backdrop{background:#0009}.cpe-email-dialog input{display:block;width:100%;padding:10px;margin:8px 0 16px;border:1px solid #D4CDB8}.cpe-email-dialog button{padding:10px;margin:8px 4px;background:#0A0A0A;color:#d5c28d;border:1px solid #9A8A5A}</style><dialog id="cpe-email-dialog" class="cpe-email-dialog"><h2>Complete seu cadastro</h2><p>Cadastre seu e-mail para recuperar a senha. Enviaremos um link para confirmar o endereço.</p><form id="cpe-email-form"><label>E-mail<input id="cpe-email-input" type="email" maxlength="254" autocomplete="email" required></label><button id="cpe-email-enviar">Enviar confirmação</button></form><p id="cpe-email-msg" role="status"></p><button id="cpe-email-fechar" hidden>Continuar</button></dialog><dialog id="cpe-reset-dialog" class="cpe-email-dialog"><h2>Recuperar senha</h2><p>Informe seu número PM e o e-mail cadastrado e confirmado. Caso não tenha e-mail cadastrado, procure a Gerência.</p><form id="cpe-reset-form"><label>Número PM<input id="cpe-reset-usuario" maxlength="80" required></label><label>E-mail<input id="cpe-reset-email" type="email" maxlength="254" required></label><button id="cpe-reset-enviar">Enviar link de recuperação</button></form><p id="cpe-reset-msg" role="status"></p><button id="cpe-reset-fechar">Voltar ao login</button></dialog><script>
+async function cpeEmailPublico(dados){
+ if(typeof chamarServidor==='function')return chamarServidor('solicitarRecuperacao',dados);
+ var r=await fetch(APPS_SCRIPT_URL,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify({acao:'solicitarRecuperacao',dados:dados})});return r.json();
+}
+var cpeEmailAplicarAnterior=_aplicarSessao;
+_aplicarSessao=function(){cpeEmailAplicarAnterior();cpeVerificarEmail();};
+async function cpeVerificarEmail(){
+ var user=SESSAO&&SESSAO.usuario;if(!user)return;
+ try{var r=await cpeGerencia('emailInfo');if(!SESSAO||SESSAO.usuario!==user)return;
+ document.getElementById('cpe-email-perfil').textContent='E-mail: '+(r.email||'Não cadastrado')+(r.email?(r.confirmado?' (confirmado)':' (aguardando confirmação)'):'');
+ document.getElementById('cpe-email-input').value=r.email||'';
+ if(!r.email){document.getElementById('cpe-email-fechar').hidden=true;document.getElementById('cpe-email-dialog').showModal();}
+ }catch(e){document.getElementById('cpe-email-perfil').textContent='Não foi possível consultar o e-mail: '+e.message;}
+}
+document.getElementById('cpe-email-dialog').addEventListener('cancel',function(e){if(document.getElementById('cpe-email-fechar').hidden)e.preventDefault();});
+document.getElementById('cpe-email-fechar').onclick=function(){document.getElementById('cpe-email-dialog').close();};
+document.getElementById('cpe-email-editar').onclick=function(){document.getElementById('cpe-email-fechar').hidden=false;document.getElementById('cpe-email-dialog').showModal();};
+document.getElementById('cpe-email-form').onsubmit=async function(e){e.preventDefault();var b=document.getElementById('cpe-email-enviar'),m=document.getElementById('cpe-email-msg');b.disabled=true;m.textContent='Enviando confirmação…';try{var r=await cpeGerencia('registrarEmail',{email:document.getElementById('cpe-email-input').value});if(!r.ok)throw Error(r.erro);m.textContent=r.msg;document.getElementById('cpe-email-fechar').hidden=false;await cpeVerificarEmail();}catch(err){m.textContent=err.message;}finally{b.disabled=false;}};
+document.getElementById('cpe-esqueci').onclick=function(){document.getElementById('cpe-reset-dialog').showModal();};
+document.getElementById('cpe-reset-fechar').onclick=function(){document.getElementById('cpe-reset-dialog').close();};
+document.getElementById('cpe-reset-form').onsubmit=async function(e){e.preventDefault();var b=document.getElementById('cpe-reset-enviar'),m=document.getElementById('cpe-reset-msg');b.disabled=true;m.textContent='Processando…';try{var r=await cpeEmailPublico({usuario:document.getElementById('cpe-reset-usuario').value,email:document.getElementById('cpe-reset-email').value});m.textContent=r.msg||r.erro;}catch(err){m.textContent='Falha de conexão. Tente novamente.';}finally{b.disabled=false;}};
+var cpeEmailPerfilAntes=cpeCarregarPerfil;cpeCarregarPerfil=async function(){await cpeEmailPerfilAntes();await cpeVerificarEmail();};
 </script></body>
 </html>
